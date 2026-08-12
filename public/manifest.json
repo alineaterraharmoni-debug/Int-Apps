@@ -1,0 +1,15 @@
+{
+    "name": "Opty Tracker — Alinea Terra Harmoni",
+    "short_name": "Opty Tracker",
+    "description": "Superapp internal Alinea: CRM, Project Ops, Dokumen, dan Business Review.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#F5F6F9",
+    "theme_color": "#131B33",
+    "orientation": "portrait-primary",
+    "icons": [
+        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+        { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    ]
+}
