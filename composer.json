@@ -34,6 +34,12 @@
         }
     },
     "scripts": {
+        "pre-install-cmd": [
+            "@php -r 'foreach ([\"storage/framework/sessions\",\"storage/framework/views\",\"storage/framework/cache/data\",\"storage/framework/testing\",\"storage/logs\",\"bootstrap/cache\"] as $d) { if (!is_dir($d)) { mkdir($d, 0775, true); } }'"
+        ],
+        "pre-update-cmd": [
+            "@php -r 'foreach ([\"storage/framework/sessions\",\"storage/framework/views\",\"storage/framework/cache/data\",\"storage/framework/testing\",\"storage/logs\",\"bootstrap/cache\"] as $d) { if (!is_dir($d)) { mkdir($d, 0775, true); } }'"
+        ],
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
