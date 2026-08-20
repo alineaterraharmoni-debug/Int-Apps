@@ -25,20 +25,20 @@
             @php $c = $palette[$m['color']]; @endphp
 
             @if ($m['available'])
-                <a href="{{ $m['route'] }}" class="group relative bg-white border border-gray-200 {{ $c['ring'] }} rounded-2xl p-4 md:p-5 flex flex-col items-center text-center overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                <a href="{{ $m['route'] }}" class="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 {{ $c['ring'] }} rounded-2xl p-4 md:p-5 flex flex-col items-center text-center overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
                     <span class="absolute top-0 left-0 right-0 h-[3px] {{ $c['bar'] }}"></span>
             @else
-                <div class="relative bg-white border border-dashed border-gray-200 rounded-2xl p-4 md:p-5 flex flex-col items-center text-center overflow-hidden opacity-60">
+                <div class="relative bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-4 md:p-5 flex flex-col items-center text-center overflow-hidden opacity-60">
             @endif
                 <div class="w-12 h-12 md:w-14 md:h-14 rounded-full {{ $c['bg'] }} {{ $c['text'] }} flex items-center justify-center mb-3 transition-transform duration-200 {{ $m['available'] ? 'group-hover:scale-110' : '' }}">
                     <x-icon :name="$m['icon']" class="w-6 h-6" />
                 </div>
                 <div class="font-display font-bold text-sm md:text-base">{{ $m['name'] }}</div>
-                <div class="text-xs text-gray-500 mt-0.5 mb-2.5">{{ $m['desc'] }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 mb-2.5">{{ $m['desc'] }}</div>
                 @if ($m['available'])
                     <div class="text-[11px] font-mono {{ $c['text'] }} font-semibold">{{ $m['stat'] }}</div>
                 @else
-                    <div class="text-[10px] font-mono text-gray-400 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">{{ $m['stat'] }}</div>
+                    <div class="text-[10px] font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-full px-2 py-0.5">{{ $m['stat'] }}</div>
                 @endif
             @if ($m['available'])
                 </a>

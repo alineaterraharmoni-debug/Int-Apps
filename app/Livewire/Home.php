@@ -11,16 +11,22 @@ class Home extends Component
 {
     public function render()
     {
+        $user = auth()->user();
+        $canCrm = $user->hasPermission('crm.view');
+        $canReport = $user->hasPermission('report.view');
+
         $modules = [
             [
                 'key' => 'crm',
                 'name' => 'CRM',
                 'desc' => 'Tracking opty & pipeline',
                 'icon' => 'users',
-                'route' => route('crm.board'),
-                'available' => true,
+                'route' => $canCrm ? route('crm.board') : null,
+                'available' => $canCrm,
                 'color' => 'sky',
-                'stat' => Opportunity::whereNotIn('stage', ['won', 'lost'])->count().' opty aktif',
+                'stat' => $canCrm
+                    ? Opportunity::whereNotIn('stage', ['won', 'lost'])->count().' opty aktif'
+                    : 'Gak ada akses',
             ],
             [
                 'key' => 'project',
@@ -47,10 +53,10 @@ class Home extends Component
                 'name' => 'Report Bisnis',
                 'desc' => 'Business review M/Q/Y',
                 'icon' => 'chart-bar',
-                'route' => route('crm.report'),
-                'available' => true,
+                'route' => $canReport ? route('crm.report') : null,
+                'available' => $canReport,
                 'color' => 'violet',
-                'stat' => 'Monthly · Quarterly · Yearly',
+                'stat' => $canReport ? 'Monthly · Quarterly · Yearly' : 'Gak ada akses',
             ],
         ];
 

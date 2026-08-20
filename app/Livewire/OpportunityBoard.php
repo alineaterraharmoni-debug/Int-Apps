@@ -75,21 +75,51 @@ class OpportunityBoard extends Component
             'salesOptions' => TeamMember::active()->withRole('sales')->get(),
             'presalesOptions' => TeamMember::active()->withRole('presales')->get(),
             'engineerOptions' => TeamMember::active()->withRole('engineer')->get(),
+            'canManageFull' => $this->canManageFull(),
+            'canManageMqlOnly' => $this->canManageMqlOnly(),
+            'canCreateOrEdit' => $this->canManageFull() || $this->canManageMqlOnly(),
         ]);
+    }
+
+    private function canManageFull(): bool
+    {
+        return auth()->user()->hasPermission('crm.manage');
+    }
+
+    private function canManageMqlOnly(): bool
+    {
+        return auth()->user()->hasPermission('crm.manage_mql_only');
     }
 
     public function openCreate(?string $stage = null): void
     {
+        if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
+            abort(403, 'Akun lo cuma bisa lihat pipeline ini, gak bisa nambah opty.');
+        }
+
         $this->resetForm();
         if ($stage) {
             $this->stage = $stage;
+        }
+        // Role terbatas cuma boleh bikin opty di stage MQL.
+        if (! $this->canManageFull() && $this->canManageMqlOnly()) {
+            $this->stage = 'mql';
         }
         $this->showModal = true;
     }
 
     public function openEdit(int $id): void
     {
+        if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
+            abort(403, 'Akun lo cuma bisa lihat pipeline ini, gak bisa edit opty.');
+        }
+
         $opty = Opportunity::with('engineers')->findOrFail($id);
+
+        // Role terbatas MQL-only gak boleh megang opty yang udah lewat MQL.
+        if (! $this->canManageFull() && $this->canManageMqlOnly() && $opty->stage !== 'mql') {
+            abort(403, 'Opty ini udah lewat stage MQL — akun lo gak bisa edit lagi.');
+        }
 
         $this->editingId = $opty->id;
         $this->title = $opty->title;
@@ -123,6 +153,16 @@ class OpportunityBoard extends Component
 
     public function save(): void
     {
+        if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
+            abort(403, 'Akun lo gak punya izin nyimpen opty.');
+        }
+
+        // Defense in depth: role MQL-only dipaksa stage-nya tetep 'mql' apapun
+        // yang dikirim dari form (jaga-jaga kalau UI-nya ke-bypass).
+        if (! $this->canManageFull() && $this->canManageMqlOnly()) {
+            $this->stage = 'mql';
+        }
+
         $data = $this->validate([
             'title' => 'required|string|max:150',
             'customer_id' => 'required|exists:customers,id',
@@ -168,6 +208,10 @@ class OpportunityBoard extends Component
 
     public function delete(): void
     {
+        if (! $this->canManageFull()) {
+            abort(403, 'Cuma role dengan akses penuh yang bisa hapus opty.');
+        }
+
         if ($this->editingId) {
             Opportunity::findOrFail($this->editingId)->delete();
         }
@@ -178,6 +222,17 @@ class OpportunityBoard extends Component
     {
         if (! array_key_exists($stage, Opportunity::STAGES)) {
             return;
+        }
+
+        if (! $this->canManageFull()) {
+            if (! $this->canManageMqlOnly()) {
+                return; // gak punya izin sama sekali
+            }
+            // Role MQL-only cuma boleh geser opty yang lagi/mau ke MQL.
+            $opty = Opportunity::find($id);
+            if (! $opty || $opty->stage !== 'mql' || $stage !== 'mql') {
+                return;
+            }
         }
 
         $opty = Opportunity::findOrFail($id);

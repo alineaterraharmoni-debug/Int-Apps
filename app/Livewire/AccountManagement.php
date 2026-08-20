@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -21,6 +22,8 @@ class AccountManagement extends Component
 
     public bool $is_admin = false;
 
+    public ?int $role_id = null;
+
     // Ditampilin sekali aja setelah create/reset password, lalu ilang begitu modal ditutup.
     public ?string $revealedPassword = null;
     public ?string $revealedFor = null;
@@ -28,8 +31,8 @@ class AccountManagement extends Component
     public function render()
     {
         return view('livewire.account-management', [
-            'users' => User::orderBy('name')->get(),
-            'adminCount' => User::where('is_admin', true)->count(),
+            'users' => User::with('role')->orderBy('name')->get(),
+            'roles' => Role::orderBy('name')->get(),
         ]);
     }
 
@@ -46,6 +49,7 @@ class AccountManagement extends Component
         $this->name = $u->name;
         $this->email = $u->email;
         $this->is_admin = $u->is_admin;
+        $this->role_id = $u->role_id;
         $this->showModal = true;
     }
 
@@ -57,7 +61,13 @@ class AccountManagement extends Component
                 ? 'required|email|unique:users,email,' . $this->editingId
                 : 'required|email|unique:users,email',
             'is_admin' => 'boolean',
+            'role_id' => 'nullable|exists:roles,id',
         ]);
+
+        // Super Admin gak butuh role spesifik — dia lolos semua permission check.
+        if ($data['is_admin']) {
+            $data['role_id'] = null;
+        }
 
         if ($this->editingId) {
             // Cegah demote diri sendiri kalau dia admin terakhir — biar gak ke-lockout.
@@ -121,7 +131,7 @@ class AccountManagement extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editingId', 'name', 'email', 'is_admin', 'revealedPassword', 'revealedFor']);
+        $this->reset(['editingId', 'name', 'email', 'is_admin', 'role_id', 'revealedPassword', 'revealedFor']);
         $this->resetErrorBag();
     }
 }

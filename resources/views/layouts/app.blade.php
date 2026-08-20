@@ -13,6 +13,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -36,8 +37,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     @livewireStyles
+    <script>
+        // Set 'dark' class SEBELUM body dirender biar gak ada flash putih pas load.
+        const savedTheme = localStorage.getItem('opty-theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     <style>
         body{font-family:'Inter',sans-serif;background:#F5F6F9;color:#131B33;}
+        .dark body{background:#0B1220;color:#E5E7EB;}
         @media (max-width: 767px){
             body{ padding-bottom: 76px; } /* ruang buat bottom nav modul */
         }
@@ -83,8 +92,12 @@
                 {{-- Nav modul — cuma tampil di layar medium ke atas, di HP dipindah ke bottom nav --}}
                 <div class="hidden md:flex items-center gap-1 text-sm font-medium">
                     <a href="{{ route('home') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('home') ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80' }}">Home</a>
-                    <a href="{{ route('crm.board') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.board') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">CRM</a>
-                    <a href="{{ route('crm.report') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.report') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">Report</a>
+                    @if (auth()->user()->hasPermission('crm.view'))
+                        <a href="{{ route('crm.board') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.board') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">CRM</a>
+                    @endif
+                    @if (auth()->user()->hasPermission('report.view'))
+                        <a href="{{ route('crm.report') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.report') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">Report</a>
+                    @endif
                     <span class="w-px h-4 bg-white/10 mx-1"></span>
                     <span class="flex items-center gap-1.5 text-[11px] font-mono text-white/40 pl-1">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 signal-dot"></span> Online
@@ -103,10 +116,18 @@
                             <a href="{{ route('accounts') }}" class="text-white/40 hover:text-white/80 transition" title="Kelola Akun (Super Admin)">
                                 <x-icon name="shield" class="w-[18px] h-[18px]" />
                             </a>
+                        @elseif (auth()->user()->hasPermission('accounts.create'))
+                            <a href="{{ route('account.create') }}" class="text-white/40 hover:text-white/80 transition" title="Tambah Akun Baru">
+                                <x-icon name="shield" class="w-[18px] h-[18px]" />
+                            </a>
                         @endif
                         <a href="{{ route('account.password') }}" class="text-white/40 hover:text-white/80 transition" title="Ganti Password">
                             <x-icon name="key" class="w-[18px] h-[18px]" />
                         </a>
+                        <button id="themeToggle" type="button" class="text-white/40 hover:text-white/80 transition" title="Ganti tampilan gelap/terang">
+                            <x-icon name="moon" class="w-[18px] h-[18px] theme-icon-dark" />
+                            <x-icon name="sun" class="w-[18px] h-[18px] theme-icon-light hidden" />
+                        </button>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="text-white/40 hover:text-white/80 transition" title="Keluar">
@@ -121,18 +142,26 @@
         {{-- Submenu kontekstual: cuma muncul kalau lagi di dalam modul CRM, tampil di ATAS sesuai spek mobile --}}
         @if (request()->routeIs('crm.*'))
             <div class="max-w-7xl mx-auto px-4 md:px-6 pb-2.5 flex gap-1.5 overflow-x-auto text-sm">
-                <a href="{{ route('crm.board') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.board') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                    <x-icon name="layout-kanban" class="w-4 h-4" /> Board
-                </a>
-                <a href="{{ route('crm.report') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.report') || request()->routeIs('crm.report.*') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                    <x-icon name="chart-bar" class="w-4 h-4" /> Report
-                </a>
-                <a href="{{ route('crm.customers') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.customers') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                    <x-icon name="building-store" class="w-4 h-4" /> Customer Insight
-                </a>
-                <a href="{{ route('crm.team') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.team') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                    <x-icon name="users" class="w-4 h-4" /> Tim
-                </a>
+                @if (auth()->user()->hasPermission('crm.view'))
+                    <a href="{{ route('crm.board') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.board') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                        <x-icon name="layout-kanban" class="w-4 h-4" /> Board
+                    </a>
+                @endif
+                @if (auth()->user()->hasPermission('report.view'))
+                    <a href="{{ route('crm.report') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.report') || request()->routeIs('crm.report.*') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                        <x-icon name="chart-bar" class="w-4 h-4" /> Report
+                    </a>
+                @endif
+                @if (auth()->user()->hasPermission('customer.view'))
+                    <a href="{{ route('crm.customers') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.customers') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                        <x-icon name="building-store" class="w-4 h-4" /> Customer Insight
+                    </a>
+                @endif
+                @if (auth()->user()->hasPermission('team.view'))
+                    <a href="{{ route('crm.team') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.team') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                        <x-icon name="users" class="w-4 h-4" /> Tim
+                    </a>
+                @endif
             </div>
         @endif
     </nav>
@@ -142,17 +171,26 @@
     </main>
 
     {{-- Bottom tab nav (mobile) — daftar modul utama, submenu-nya sendiri tampil di atas --}}
+    @php
+        $bottomTabs = 1; // Home selalu ada
+        if (auth()->user()->hasPermission('crm.view')) $bottomTabs++;
+        if (auth()->user()->hasPermission('report.view')) $bottomTabs++;
+    @endphp
     <nav class="md:hidden fixed bottom-0 inset-x-0 bg-navy border-t border-white/10 z-40" style="padding-bottom: env(safe-area-inset-bottom);">
-        <div class="grid grid-cols-3">
+        <div class="grid" style="grid-template-columns: repeat({{ $bottomTabs }}, minmax(0, 1fr));">
             <a href="{{ route('home') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('home') ? 'text-sky' : 'text-white/40' }}">
                 <x-icon name="home" class="w-5 h-5 {{ request()->routeIs('home') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> Home
             </a>
-            <a href="{{ route('crm.board') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('crm.board') ? 'text-sky' : 'text-white/40' }}">
-                <x-icon name="users" class="w-5 h-5 {{ request()->routeIs('crm.board') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> CRM
-            </a>
-            <a href="{{ route('crm.report') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('crm.report') ? 'text-sky' : 'text-white/40' }}">
-                <x-icon name="chart-bar" class="w-5 h-5 {{ request()->routeIs('crm.report') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> Report
-            </a>
+            @if (auth()->user()->hasPermission('crm.view'))
+                <a href="{{ route('crm.board') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('crm.board') ? 'text-sky' : 'text-white/40' }}">
+                    <x-icon name="users" class="w-5 h-5 {{ request()->routeIs('crm.board') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> CRM
+                </a>
+            @endif
+            @if (auth()->user()->hasPermission('report.view'))
+                <a href="{{ route('crm.report') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('crm.report') ? 'text-sky' : 'text-white/40' }}">
+                    <x-icon name="chart-bar" class="w-5 h-5 {{ request()->routeIs('crm.report') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> Report
+                </a>
+            @endif
         </div>
     </nav>
 
@@ -215,6 +253,21 @@
 
         window.addEventListener('appinstalled', () => {
             banner?.classList.add('hidden');
+        });
+
+        // Dark/light toggle
+        function syncThemeIcon() {
+            const isDark = document.documentElement.classList.contains('dark');
+            document.querySelectorAll('.theme-icon-dark').forEach(el => el.classList.toggle('hidden', isDark));
+            document.querySelectorAll('.theme-icon-light').forEach(el => el.classList.toggle('hidden', !isDark));
+        }
+        syncThemeIcon();
+
+        document.getElementById('themeToggle')?.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('opty-theme', isDark ? 'dark' : 'light');
+            syncThemeIcon();
         });
     </script>
 </body>
