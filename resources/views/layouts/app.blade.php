@@ -38,9 +38,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     @livewireStyles
     <script>
-        // Set 'dark' class SEBELUM body dirender biar gak ada flash putih pas load.
-        const savedTheme = localStorage.getItem('opty-theme');
-        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        // Default SELALU light — dark mode cuma nyala kalau user EKSPLISIT
+        // toggle sendiri. Sengaja gak ikutin prefers-color-scheme HP, biar
+        // gak bingung "kok defaultnya gelap" padahal belum disentuh.
+        if (localStorage.getItem('opty-theme') === 'dark') {
             document.documentElement.classList.add('dark');
         }
     </script>
@@ -139,29 +140,44 @@
             </div>
         </div>
 
-        {{-- Submenu kontekstual: cuma muncul kalau lagi di dalam modul CRM, tampil di ATAS sesuai spek mobile --}}
+        {{-- Submenu kontekstual: cuma muncul kalau lagi di dalam modul CRM, tampil di ATAS sesuai spek mobile.
+             Grid rata (bukan scroll horizontal) — jumlah kolom nyesuain berapa tab yang keliatan. --}}
         @if (request()->routeIs('crm.*'))
-            <div class="max-w-7xl mx-auto px-4 md:px-6 pb-2.5 flex gap-1.5 overflow-x-auto text-sm">
-                @if (auth()->user()->hasPermission('crm.view'))
-                    <a href="{{ route('crm.board') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.board') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                        <x-icon name="layout-kanban" class="w-4 h-4" /> Board
-                    </a>
-                @endif
-                @if (auth()->user()->hasPermission('report.view'))
-                    <a href="{{ route('crm.report') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.report') || request()->routeIs('crm.report.*') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                        <x-icon name="chart-bar" class="w-4 h-4" /> Report
-                    </a>
-                @endif
-                @if (auth()->user()->hasPermission('customer.view'))
-                    <a href="{{ route('crm.customers') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.customers') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                        <x-icon name="building-store" class="w-4 h-4" /> Customer Insight
-                    </a>
-                @endif
-                @if (auth()->user()->hasPermission('team.view'))
-                    <a href="{{ route('crm.team') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.team') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                        <x-icon name="users" class="w-4 h-4" /> Tim
-                    </a>
-                @endif
+            @php
+                $subTabs = 0;
+                if (auth()->user()->hasPermission('crm.view')) $subTabs++;
+                if (auth()->user()->hasPermission('report.view')) $subTabs++;
+                if (auth()->user()->hasPermission('customer.view')) $subTabs++;
+                if (auth()->user()->hasPermission('team.view')) $subTabs++;
+                $subTabs = max($subTabs, 1);
+            @endphp
+            <div class="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 pb-2.5">
+                <div class="grid gap-1" style="grid-template-columns: repeat({{ $subTabs }}, minmax(0, 1fr));">
+                    @if (auth()->user()->hasPermission('crm.view'))
+                        <a href="{{ route('crm.board') }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-medium transition text-center {{ request()->routeIs('crm.board') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                            <x-icon name="layout-kanban" class="w-4 h-4 shrink-0" />
+                            <span class="text-[10px] sm:text-sm leading-tight">Board</span>
+                        </a>
+                    @endif
+                    @if (auth()->user()->hasPermission('report.view'))
+                        <a href="{{ route('crm.report') }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-medium transition text-center {{ request()->routeIs('crm.report') || request()->routeIs('crm.report.*') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                            <x-icon name="chart-bar" class="w-4 h-4 shrink-0" />
+                            <span class="text-[10px] sm:text-sm leading-tight">Report</span>
+                        </a>
+                    @endif
+                    @if (auth()->user()->hasPermission('customer.view'))
+                        <a href="{{ route('crm.customers') }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-medium transition text-center {{ request()->routeIs('crm.customers') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                            <x-icon name="building-store" class="w-4 h-4 shrink-0" />
+                            <span class="text-[10px] sm:text-sm leading-tight">Customer</span>
+                        </a>
+                    @endif
+                    @if (auth()->user()->hasPermission('team.view'))
+                        <a href="{{ route('crm.team') }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-medium transition text-center {{ request()->routeIs('crm.team') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                            <x-icon name="users" class="w-4 h-4 shrink-0" />
+                            <span class="text-[10px] sm:text-sm leading-tight">Tim</span>
+                        </a>
+                    @endif
+                </div>
             </div>
         @endif
     </nav>
