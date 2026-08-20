@@ -10,6 +10,8 @@ $icons = [
     'layout-kanban' => '<rect x="4" y="4" width="16" height="16" rx="1.5" /><path d="M9 4v16M15 4v9" />',
     'building-store' => '<path d="M4 10v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9" /><path d="M3 6l1.5-3h15L21 6" /><path d="M3 6a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0" /><path d="M10 20v-5h4v5" />',
     'logout' => '<path d="M9 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h3" /><path d="M15 16l4-4-4-4" /><path d="M19 12H9" />',
+    'key' => '<circle cx="8" cy="15" r="4" /><path d="M10.5 12.5 20 3" /><path d="M17 6l2 2" /><path d="M14 9l2 2" />',
+    'shield' => '<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" /><path d="M9 12l2 2 4-4" />',
     'chevron-down' => '<path d="M6 9l6 6 6-6" />',
 ];
 $path = $icons[$name] ?? '';

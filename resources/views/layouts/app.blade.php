@@ -93,11 +93,20 @@
 
                 {{-- User chip + logout — selalu keliatan, mobile & desktop --}}
                 @auth
-                    <div class="flex items-center gap-2 pl-3 border-l border-white/10">
+                    <div class="flex items-center gap-2.5 pl-3 border-l border-white/10">
                         <div class="w-7 h-7 rounded-full bg-sky/20 text-sky flex items-center justify-center text-[11px] font-display font-bold shrink-0">
                             {{ collect(explode(' ', auth()->user()->name))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('') }}
                         </div>
                         <span class="hidden md:inline text-xs text-white/60 max-w-[110px] truncate">{{ auth()->user()->name }}</span>
+
+                        @if (auth()->user()->is_admin)
+                            <a href="{{ route('accounts') }}" class="text-white/40 hover:text-white/80 transition" title="Kelola Akun (Super Admin)">
+                                <x-icon name="shield" class="w-[18px] h-[18px]" />
+                            </a>
+                        @endif
+                        <a href="{{ route('account.password') }}" class="text-white/40 hover:text-white/80 transition" title="Ganti Password">
+                            <x-icon name="key" class="w-[18px] h-[18px]" />
+                        </a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="text-white/40 hover:text-white/80 transition" title="Keluar">

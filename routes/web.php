@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ReportPdfController;
+use App\Livewire\AccountManagement;
+use App\Livewire\ChangePassword;
 use App\Livewire\CustomerInsight;
 use App\Livewire\Home;
 use App\Livewire\OpportunityBoard;
@@ -18,6 +20,7 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 
 Route::middleware('auth')->group(function () {
     Route::get('/', Home::class)->name('home');
+    Route::get('/account/password', ChangePassword::class)->name('account.password');
 
     Route::prefix('crm')->name('crm.')->group(function () {
         Route::get('/board', OpportunityBoard::class)->name('board');
@@ -25,5 +28,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/report/export-pdf', [ReportPdfController::class, 'export'])->name('report.export-pdf');
         Route::get('/customers', CustomerInsight::class)->name('customers');
         Route::get('/team', TeamMembers::class)->name('team');
+    });
+
+    Route::middleware('admin')->group(function () {
+        Route::get('/accounts', AccountManagement::class)->name('accounts');
     });
 });

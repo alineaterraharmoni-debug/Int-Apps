@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Railway sits behind a reverse proxy — trust it so Laravel
         // generates https:// URLs correctly (avoids mixed-content errors).
         $middleware->trustProxies(at: '*');
+
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

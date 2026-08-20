@@ -18,7 +18,10 @@ class TeamMemberSeeder extends Seeder
         ];
 
         foreach ($members as $member) {
-            TeamMember::updateOrCreate(
+            // firstOrCreate — cuma isi kalau belum ada. Ini seeder auto-jalan
+            // tiap deploy, jadi JANGAN pakai updateOrCreate biar gak nimpa
+            // balik edit manual yang udah dilakuin lewat halaman Tim.
+            TeamMember::firstOrCreate(
                 ['name' => $member['name']],
                 ['roles' => $member['roles'], 'is_active' => true]
             );
