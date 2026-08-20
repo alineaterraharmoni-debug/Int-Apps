@@ -8,6 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Defensif: kalau tabel ini udah sempet kebuat dari percobaan deploy
+        // sebelumnya yang crash di tengah jalan, jangan re-create — cukup skip
+        // biar migration ini tetap ke-mark "sudah jalan" dan gak nge-block start.
+        if (Schema::hasTable('sessions')) {
+            return;
+        }
+
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
