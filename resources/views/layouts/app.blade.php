@@ -147,6 +147,27 @@
         </div>
     </nav>
 
+    <div id="installBanner" class="hidden md:hidden fixed bottom-[76px] inset-x-3 z-50 bg-navy border border-white/10 rounded-xl px-4 py-3 items-center justify-between gap-3 shadow-xl">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <svg width="20" height="20" viewBox="0 0 26 26" fill="none" class="shrink-0">
+                <circle cx="4" cy="6" r="2.4" fill="#19A9DB"/>
+                <circle cx="22" cy="6" r="2.4" fill="#14B8A6"/>
+                <circle cx="4" cy="20" r="2.4" fill="#F6B01A"/>
+                <circle cx="22" cy="20" r="2.4" fill="#8B5CF6"/>
+                <circle cx="13" cy="13" r="3.2" fill="#0A1628"/>
+                <line x1="13" y1="13" x2="4" y2="6" stroke="#19A9DB" stroke-width="1.3" opacity="0.7"/>
+                <line x1="13" y1="13" x2="22" y2="6" stroke="#14B8A6" stroke-width="1.3" opacity="0.7"/>
+                <line x1="13" y1="13" x2="4" y2="20" stroke="#F6B01A" stroke-width="1.3" opacity="0.7"/>
+                <line x1="13" y1="13" x2="22" y2="20" stroke="#8B5CF6" stroke-width="1.3" opacity="0.7"/>
+            </svg>
+            <span class="text-xs text-white/80 truncate">Install Opty Tracker ke layar utama HP lo</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button id="installDismiss" class="text-white/40 text-xs px-2">Nanti</button>
+            <button id="installBtn" class="bg-sky text-navy text-xs font-semibold px-3 py-1.5 rounded-lg">Install</button>
+        </div>
+    </div>
+
     @livewireScripts
     <script>
         if ('serviceWorker' in navigator) {
@@ -154,6 +175,38 @@
                 navigator.serviceWorker.register('/sw.js').catch(() => {});
             });
         }
+
+        // Custom install prompt — browser modern (Chrome/Edge Android) gak nongolin
+        // popup otomatis lagi, jadi kita tangkep event-nya dan tawarin tombol sendiri.
+        let deferredPrompt = null;
+        const banner = document.getElementById('installBanner');
+        const dismissedKey = 'opty-install-dismissed';
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (!localStorage.getItem(dismissedKey) && banner) {
+                banner.classList.remove('hidden');
+                banner.classList.add('flex');
+            }
+        });
+
+        document.getElementById('installBtn')?.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            banner.classList.add('hidden');
+        });
+
+        document.getElementById('installDismiss')?.addEventListener('click', () => {
+            localStorage.setItem(dismissedKey, '1');
+            banner.classList.add('hidden');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            banner?.classList.add('hidden');
+        });
     </script>
 </body>
 </html>
