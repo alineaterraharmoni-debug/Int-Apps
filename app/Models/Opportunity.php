@@ -104,6 +104,7 @@ class Opportunity extends Model
             ->when($filters['category'] ?? null, fn ($q, $v) => $q->where('category', $v))
             ->when($filters['stage'] ?? null, fn ($q, $v) => $q->where('stage', $v))
             ->when($filters['rating'] ?? null, fn ($q, $v) => $q->where('rating', $v))
+            ->when($filters['customer_id'] ?? null, fn ($q, $v) => $q->where('customer_id', $v))
             ->when($filters['date_from'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
             ->when($filters['date_to'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '<=', $v));
     }

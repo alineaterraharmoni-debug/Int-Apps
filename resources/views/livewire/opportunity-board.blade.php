@@ -4,21 +4,32 @@
             <div class="text-xs font-mono uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">PT Alinea Terra Harmoni · Internal</div>
             <h1 class="font-display font-extrabold text-xl md:text-2xl">Pipeline Opty</h1>
         </div>
-        @if ($canCreateOrEdit)
-            <button wire:click="openCreate" class="bg-ink text-white font-semibold text-sm px-3.5 md:px-4 py-2 md:py-2.5 rounded-lg hover:bg-gray-800 whitespace-nowrap">
-                + Opty Baru
-            </button>
-        @else
-            <span class="text-[11px] font-mono text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg">Mode lihat aja</span>
-        @endif
+        <div class="flex items-center gap-2">
+            <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-xs">
+                <button wire:click="setViewMode('board')" class="px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 {{ $viewMode === 'board' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">
+                    <x-icon name="layout-kanban" class="w-3.5 h-3.5" /> <span class="hidden sm:inline">Board</span>
+                </button>
+                <button wire:click="setViewMode('list')" class="px-2.5 py-1.5 rounded-md font-medium flex items-center gap-1 {{ $viewMode === 'list' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">
+                    <x-icon name="file-text" class="w-3.5 h-3.5" /> <span class="hidden sm:inline">List</span>
+                </button>
+            </div>
+            @if ($canCreateOrEdit)
+                <button wire:click="openCreate" class="bg-ink text-white font-semibold text-sm px-3.5 md:px-4 py-2 md:py-2.5 rounded-lg hover:bg-gray-800 whitespace-nowrap">
+                    + Opty Baru
+                </button>
+            @else
+                <span class="text-[11px] font-mono text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg">Mode lihat aja</span>
+            @endif
+        </div>
     </div>
 
+    @if ($viewMode === 'board')
     <div class="text-[11px] text-gray-400 dark:text-gray-500 mb-2 md:hidden">
         Geser ke samping buat lihat stage lainnya → · Tap kartu buat ubah stage/detail
     </div>
 
     <div
-        class="flex md:grid md:grid-cols-5 gap-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory -mx-3 px-3 md:mx-0 md:px-0 pb-2"
+        class="flex md:grid md:grid-cols-4 gap-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory -mx-3 px-3 md:mx-0 md:px-0 pb-2"
         x-data="{}"
     >
         @foreach ($stages as $key => $label)
@@ -49,7 +60,8 @@
                         $cardEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads');
                     @endphp
                     <div
-                        @if ($cardEditable) draggable="true" @endif
+                        class="opty-card"
+                        style="touch-action: manipulation;"
                         x-on:dragstart="$event.dataTransfer.setData('text/plain', '{{ $opty->id }}')"
                         @if ($cardEditable) wire:click="openEdit({{ $opty->id }})" @endif
                         wire:key="opty-{{ $opty->id }}"
@@ -95,8 +107,71 @@
             </div>
         @endforeach
     </div>
+    @else
+        {{-- ===== List View ===== --}}
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-2 gap-3">
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Filter Stage</label>
+                <select wire:model.live="listFilterStage" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
+                    <option value="">Semua</option>
+                    @foreach ($stages as $val => $label)
+                        <option value="{{ $val }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Filter Rating</label>
+                <select wire:model.live="listFilterRating" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
+                    <option value="">Semua</option>
+                    @foreach ($ratings as $val => $label)
+                        <option value="{{ $val }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
 
-    {{-- ===== Modal Form ===== --}}
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-x-auto">
+            <table class="w-full text-sm min-w-[480px]">
+                <thead>
+                    <tr class="text-left text-xs text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
+                        <th class="p-3">Nama Opty</th>
+                        <th class="p-3">Customer</th>
+                        <th class="p-3">Stage</th>
+                        <th class="p-3">Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($listItems as $opty)
+                        @php $rowEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads'); @endphp
+                        <tr
+                            wire:key="list-opty-{{ $opty->id }}"
+                            @if ($rowEditable) wire:click="openEdit({{ $opty->id }})" @endif
+                            @class([
+                                'border-b border-gray-50 dark:border-gray-700/60 transition',
+                                'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40' => $rowEditable,
+                            ])
+                        >
+                            <td class="p-3 font-medium">{{ $opty->title }}</td>
+                            <td class="p-3 text-gray-500 dark:text-gray-400">{{ $opty->customer?->name ?? $opty->customer_name }}</td>
+                            <td class="p-3">
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky/10 text-sky">{{ $opty->stage_label }}</span>
+                            </td>
+                            <td class="p-3">
+                                <span @class([
+                                    'text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                                    'bg-red-50 dark:bg-red-500/10 text-red-600' => $opty->rating === 'high',
+                                    'bg-amber-50 dark:bg-amber/10 text-amber-600' => $opty->rating === 'med',
+                                    'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $opty->rating === 'low',
+                                ])>{{ $opty->rating_label }}</span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="p-8 text-center text-gray-400 dark:text-gray-500">Belum ada opty untuk filter ini</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @endif
     @if ($showModal)
         <div class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-4 z-50" wire:click.self="closeModal">
             <div class="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-xl max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6">
@@ -247,3 +322,25 @@
         </div>
     @endif
 </div>
+
+<script>
+    // Fix bug edit/drag di PWA & HP: draggable="true" yang statis dari server
+    // bikin sebagian browser (terutama mode PWA standalone) bingung bedain
+    // tap vs drag, jadi wire:click gak pernah kepencet. Solusinya: draggable
+    // cuma diaktifin buat device yang beneran punya mouse (pointer: fine).
+    function applyDraggable() {
+        const isMouse = window.matchMedia('(pointer: fine)').matches;
+        document.querySelectorAll('.opty-card').forEach((el) => {
+            if (isMouse) {
+                el.setAttribute('draggable', 'true');
+            } else {
+                el.removeAttribute('draggable');
+            }
+        });
+    }
+    applyDraggable();
+    document.addEventListener('livewire:navigated', applyDraggable);
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('board-updated', () => applyDraggable());
+    });
+</script>

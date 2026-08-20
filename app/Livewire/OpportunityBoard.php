@@ -12,6 +12,11 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class OpportunityBoard extends Component
 {
+    // ----- Tampilan Board vs List -----
+    public string $viewMode = 'board'; // board | list
+    public string $listFilterStage = '';
+    public string $listFilterRating = '';
+
     // ----- Modal & form state -----
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -66,19 +71,35 @@ class OpportunityBoard extends Component
             ->get()
             ->groupBy('stage');
 
+        $listItems = Opportunity::with(['customer'])
+            ->when($this->listFilterStage, fn ($q, $v) => $q->where('stage', $v))
+            ->when($this->listFilterRating, fn ($q, $v) => $q->where('rating', $v))
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $canCreateOrEdit = $this->canManageFull() || $this->canManageMqlOnly();
+
+        $this->dispatch('board-updated');
+
         return view('livewire.opportunity-board', [
             'stages' => Opportunity::STAGES,
             'categories' => Opportunity::CATEGORIES,
             'ratings' => Opportunity::RATINGS,
             'grouped' => $opportunities,
+            'listItems' => $listItems,
             'customerOptions' => Customer::orderBy('name')->get(),
             'salesOptions' => TeamMember::active()->withRole('sales')->get(),
             'presalesOptions' => TeamMember::active()->withRole('presales')->get(),
             'engineerOptions' => TeamMember::active()->withRole('engineer')->get(),
             'canManageFull' => $this->canManageFull(),
             'canManageMqlOnly' => $this->canManageMqlOnly(),
-            'canCreateOrEdit' => $this->canManageFull() || $this->canManageMqlOnly(),
+            'canCreateOrEdit' => $canCreateOrEdit,
         ]);
+    }
+
+    public function setViewMode(string $mode): void
+    {
+        $this->viewMode = in_array($mode, ['board', 'list'], true) ? $mode : 'board';
     }
 
     private function canManageFull(): bool

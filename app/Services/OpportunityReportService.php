@@ -12,7 +12,7 @@ class OpportunityReportService
      * Resolve a date range + its "previous period" counterpart (buat growth comparison)
      * dari pilihan period (monthly/quarterly/yearly) + parameter tahun/bulan/kuartal.
      */
-    public function resolvePeriod(string $period, int $year, ?int $month = null, ?int $quarter = null): array
+    public function resolvePeriod(string $period, int $year, ?int $month = null, ?int $quarter = null, ?string $customFrom = null, ?string $customTo = null): array
     {
         $month = $month ?: now()->month;
         $quarter = $quarter ?: (int) ceil(now()->month / 3);
@@ -33,6 +33,18 @@ class OpportunityReportService
                 $prevStart = $start->copy()->subMonths(3);
                 $prevEnd = $prevStart->copy()->addMonths(2)->endOfMonth();
                 $label = "Q{$quarter} {$year}";
+                break;
+
+            case 'custom':
+                $start = $customFrom ? Carbon::parse($customFrom)->startOfDay() : now()->startOfMonth();
+                $end = $customTo ? Carbon::parse($customTo)->endOfDay() : now()->endOfMonth();
+                if ($end->lessThan($start)) {
+                    [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
+                }
+                $days = $start->diffInDays($end) + 1;
+                $prevEnd = $start->copy()->subDay()->endOfDay();
+                $prevStart = $prevEnd->copy()->subDays($days - 1)->startOfDay();
+                $label = $start->translatedFormat('d M Y').' – '.$end->translatedFormat('d M Y');
                 break;
 
             default: // yearly

@@ -15,10 +15,12 @@ class ReportPdfController extends Controller
         $year = (int) $request->get('year', now()->year);
         $month = (int) $request->get('month', now()->month);
         $quarter = (int) $request->get('quarter', ceil(now()->month / 3));
+        $customFrom = $request->get('custom_from');
+        $customTo = $request->get('custom_to');
 
-        $range = $service->resolvePeriod($period, $year, $month, $quarter);
+        $range = $service->resolvePeriod($period, $year, $month, $quarter, $customFrom, $customTo);
 
-        $extraFilters = array_filter($request->only(['category', 'stage', 'rating']));
+        $extraFilters = array_filter($request->only(['category', 'stage', 'rating', 'customer_id']));
 
         $current = $service->summarize(array_merge($extraFilters, [
             'date_from' => $range['date_from'],
@@ -71,7 +73,9 @@ class ReportPdfController extends Controller
             'generatedAt' => now(),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('opty-report-'.$range['label'].'-'.now()->format('His').'.pdf');
+        $safeLabel = preg_replace('/[^A-Za-z0-9\-]+/', '-', $range['label']);
+
+        return $pdf->download('opty-report-'.$safeLabel.'-'.now()->format('His').'.pdf');
     }
 
     /**

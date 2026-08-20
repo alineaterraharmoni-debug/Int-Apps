@@ -7,7 +7,8 @@
         <a
             href="{{ route('crm.report.export-pdf', array_filter([
                 'period' => $period, 'year' => $year, 'month' => $month, 'quarter' => $quarter,
-                'category' => $category, 'stage' => $stage, 'rating' => $rating,
+                'custom_from' => $custom_from, 'custom_to' => $custom_to,
+                'category' => $category, 'stage' => $stage, 'rating' => $rating, 'customer_id' => $customer_id,
             ])) }}"
             target="_blank"
             class="bg-ink text-white font-semibold text-sm px-3.5 md:px-4 py-2 md:py-2.5 rounded-lg hover:bg-gray-800 whitespace-nowrap"
@@ -19,39 +20,48 @@
     {{-- Period selector --}}
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-5">
         <div class="flex flex-wrap items-center gap-3 mb-3">
-            <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-sm">
-                @foreach (['monthly' => 'Bulanan', 'quarterly' => 'Kuartalan', 'yearly' => 'Tahunan'] as $val => $label)
+            <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-sm flex-wrap">
+                @foreach (['monthly' => 'Bulanan', 'quarterly' => 'Kuartalan', 'yearly' => 'Tahunan', 'custom' => 'Custom Range'] as $val => $label)
                     <button
                         wire:click="setPeriod('{{ $val }}')"
-                        class="px-3 py-1.5 rounded-md font-medium {{ $period === $val ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}"
+                        class="px-3 py-1.5 rounded-md font-medium whitespace-nowrap {{ $period === $val ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}"
                     >{{ $label }}</button>
                 @endforeach
             </div>
 
             @if ($period === 'monthly')
-                <select wire:model.live="month" class="border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                <select wire:model.live="month" class="border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
                     @foreach (range(1,12) as $m)
                         <option value="{{ $m }}">{{ \Carbon\Carbon::create(null, $m, 1)->translatedFormat('F') }}</option>
                     @endforeach
                 </select>
             @elseif ($period === 'quarterly')
-                <select wire:model.live="quarter" class="border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                <select wire:model.live="quarter" class="border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
                     @foreach ([1,2,3,4] as $q)
                         <option value="{{ $q }}">Q{{ $q }}</option>
                     @endforeach
                 </select>
             @endif
-            <select wire:model.live="year" class="border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
-                @foreach (range(now()->year, now()->year - 4) as $y)
-                    <option value="{{ $y }}">{{ $y }}</option>
-                @endforeach
-            </select>
+            @if (in_array($period, ['monthly', 'quarterly', 'yearly']))
+                <select wire:model.live="year" class="border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
+                    @foreach (range(now()->year, now()->year - 4) as $y)
+                        <option value="{{ $y }}">{{ $y }}</option>
+                    @endforeach
+                </select>
+            @endif
+            @if ($period === 'custom')
+                <div class="flex items-center gap-2">
+                    <input type="date" wire:model.live="custom_from" class="border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
+                    <span class="text-gray-400 text-sm">s/d</span>
+                    <input type="date" wire:model.live="custom_to" class="border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
+                </div>
+            @endif
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
             <div>
                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Lini Produk</label>
-                <select wire:model.live="category" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-2 text-sm">
+                <select wire:model.live="category" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
                     <option value="">Semua</option>
                     @foreach ($categories as $val => $label)
                         <option value="{{ $val }}">{{ $label }}</option>
@@ -60,7 +70,7 @@
             </div>
             <div>
                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Stage</label>
-                <select wire:model.live="stage" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-2 text-sm">
+                <select wire:model.live="stage" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
                     <option value="">Semua</option>
                     @foreach ($stages as $val => $label)
                         <option value="{{ $val }}">{{ $label }}</option>
@@ -69,15 +79,24 @@
             </div>
             <div>
                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Rating</label>
-                <select wire:model.live="rating" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-2 text-sm">
+                <select wire:model.live="rating" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
                     <option value="">Semua</option>
                     @foreach ($ratings as $val => $label)
                         <option value="{{ $val }}">{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Customer</label>
+                <select wire:model.live="customer_id" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
+                    <option value="">Semua</option>
+                    @foreach ($customers as $c)
+                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="flex items-end">
-                <button wire:click="resetFilters" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:text-white">Reset filter</button>
+                <button wire:click="resetFilters" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:hover:text-white">Reset filter</button>
             </div>
         </div>
     </div>
@@ -107,6 +126,46 @@
                 @endif
             </div>
         @endforeach
+    </div>
+
+    {{-- Detail opty hasil filter --}}
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-5 overflow-x-auto">
+        <div class="font-display font-bold text-sm mb-3">
+            Detail Opty ({{ $current['rows']->count() }}) — {{ $range['label'] }}
+        </div>
+        <table class="w-full text-sm min-w-[520px]">
+            <thead>
+                <tr class="text-left text-xs text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
+                    <th class="pb-2">Nama Opty</th>
+                    <th class="pb-2">Customer</th>
+                    <th class="pb-2">Stage</th>
+                    <th class="pb-2">Rating</th>
+                    <th class="pb-2">Nilai TCV</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($current['rows'] as $opty)
+                    <tr class="border-b border-gray-50 dark:border-gray-700/60">
+                        <td class="py-2 font-medium">{{ $opty->title }}</td>
+                        <td class="py-2 text-gray-500 dark:text-gray-400">{{ $opty->customer?->name ?? $opty->customer_name }}</td>
+                        <td class="py-2">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky/10 text-sky">{{ $opty->stage_label }}</span>
+                        </td>
+                        <td class="py-2">
+                            <span @class([
+                                'text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                                'bg-red-50 dark:bg-red-500/10 text-red-600' => $opty->rating === 'high',
+                                'bg-amber-50 dark:bg-amber/10 text-amber-600' => $opty->rating === 'med',
+                                'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $opty->rating === 'low',
+                            ])>{{ $opty->rating_label }}</span>
+                        </td>
+                        <td class="py-2 font-mono">Rp {{ number_format($opty->tcv, 0, ',', '.') }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="py-6 text-center text-gray-400 dark:text-gray-500">Belum ada opty untuk periode/filter ini</td></tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 
     {{-- Charts --}}
@@ -177,9 +236,14 @@
                 options: { responsive: true },
             });
         }
+
+        // Livewire 3 gak nge-dispatch event DOM 'livewire:updated' kayak v2 dulu —
+        // itu sebabnya chart lama gak pernah re-render pas filter ganti.
+        // Fix-nya: dengerin custom event 'report-updated' yang di-dispatch dari PHP.
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('report-updated', () => initReportCharts());
+        });
         document.addEventListener('livewire:navigated', initReportCharts);
-        document.addEventListener('livewire:initialized', initReportCharts);
         window.addEventListener('DOMContentLoaded', initReportCharts);
-        document.addEventListener('livewire:updated', initReportCharts);
     </script>
 </div>
