@@ -19,6 +19,7 @@ class Home extends Component
                 'icon' => 'ti-users',
                 'route' => route('crm.board'),
                 'available' => true,
+                'color' => 'sky',
                 'stat' => Opportunity::whereNotIn('stage', ['won', 'lost'])->count().' opty aktif',
             ],
             [
@@ -28,6 +29,7 @@ class Home extends Component
                 'icon' => 'ti-briefcase',
                 'route' => null,
                 'available' => false,
+                'color' => 'teal',
                 'stat' => 'Segera hadir',
             ],
             [
@@ -37,6 +39,7 @@ class Home extends Component
                 'icon' => 'ti-file-text',
                 'route' => null,
                 'available' => false,
+                'color' => 'amber',
                 'stat' => 'Segera hadir',
             ],
             [
@@ -46,6 +49,7 @@ class Home extends Component
                 'icon' => 'ti-chart-bar',
                 'route' => route('crm.report'),
                 'available' => true,
+                'color' => 'violet',
                 'stat' => 'Monthly · Quarterly · Yearly',
             ],
         ];
