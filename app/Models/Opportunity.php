@@ -36,8 +36,7 @@ class Opportunity extends Model
     ];
 
     const STAGES = [
-        'mql' => 'MQL - Leads Awal',
-        'sql' => 'SQL',
+        'leads' => 'Leads',
         'develop' => 'Develop',
         'won' => 'Closing - WON',
         'lost' => 'Closing - LOST',

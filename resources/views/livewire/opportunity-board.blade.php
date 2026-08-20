@@ -46,7 +46,7 @@
 
                 @forelse ($items as $opty)
                     @php
-                        $cardEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'mql');
+                        $cardEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads');
                     @endphp
                     <div
                         @if ($cardEditable) draggable="true" @endif
@@ -176,8 +176,8 @@
                                     @endforeach
                                 </select>
                             @else
-                                <input type="text" value="MQL - Leads Awal" disabled class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-500">
-                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Role lo dibatasin cuma sampai stage MQL.</p>
+                                <input type="text" value="Leads" disabled class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-500">
+                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Role lo dibatasin cuma sampai stage Leads.</p>
                             @endif
                         </div>
                         <div>

@@ -13,7 +13,7 @@ class Permissions
     const CATALOG = [
         'CRM / Pipeline Opty' => [
             'crm.view' => 'Lihat pipeline (Board)',
-            'crm.manage_mql_only' => 'Bikin & edit opty — dibatasin cuma sampai stage MQL',
+            'crm.manage_mql_only' => 'Bikin & edit opty — dibatasin cuma sampai stage Leads',
             'crm.manage' => 'Bikin & edit opty penuh — semua stage termasuk Closing',
         ],
         'Business Review' => [

@@ -172,7 +172,7 @@
                 type: 'pie',
                 data: {
                     labels: JSON.parse(stgEl.dataset.labels),
-                    datasets: [{ data: JSON.parse(stgEl.dataset.values), backgroundColor: ['#94A3B8', '#2AA9E0', '#F2A93B', '#16A34A', '#DC2626'] }],
+                    datasets: [{ data: JSON.parse(stgEl.dataset.values), backgroundColor: ['#19A9DB', '#F6B01A', '#16A34A', '#DC2626'] }],
                 },
                 options: { responsive: true },
             });

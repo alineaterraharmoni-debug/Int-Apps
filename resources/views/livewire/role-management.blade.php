@@ -69,7 +69,7 @@
                         </div>
                     @endforeach
                     <p class="text-[11px] text-gray-400 dark:text-gray-500">
-                        Catatan: kalau centang "opty penuh semua stage", opsi "cuma sampai MQL" otomatis diabaikan (gak bisa dua-duanya).
+                        Catatan: kalau centang "opty penuh semua stage", opsi "cuma sampai Leads" otomatis diabaikan (gak bisa dua-duanya).
                     </p>
 
                     <div class="flex items-center justify-between pt-2">

@@ -41,8 +41,8 @@ class OpportunityBoard extends Component
     #[Validate('nullable|date')]
     public ?string $expected_closing_date = null;
 
-    #[Validate('required|in:mql,sql,develop,won,lost')]
-    public string $stage = 'mql';
+    #[Validate('required|in:leads,develop,won,lost')]
+    public string $stage = 'leads';
 
     #[Validate('nullable|exists:team_members,id')]
     public $sales_id = null;
@@ -101,9 +101,9 @@ class OpportunityBoard extends Component
         if ($stage) {
             $this->stage = $stage;
         }
-        // Role terbatas cuma boleh bikin opty di stage MQL.
+        // Role terbatas cuma boleh bikin opty di stage Leads.
         if (! $this->canManageFull() && $this->canManageMqlOnly()) {
-            $this->stage = 'mql';
+            $this->stage = 'leads';
         }
         $this->showModal = true;
     }
@@ -116,9 +116,9 @@ class OpportunityBoard extends Component
 
         $opty = Opportunity::with('engineers')->findOrFail($id);
 
-        // Role terbatas MQL-only gak boleh megang opty yang udah lewat MQL.
-        if (! $this->canManageFull() && $this->canManageMqlOnly() && $opty->stage !== 'mql') {
-            abort(403, 'Opty ini udah lewat stage MQL — akun lo gak bisa edit lagi.');
+        // Role terbatas Leads-only gak boleh megang opty yang udah lewat Leads.
+        if (! $this->canManageFull() && $this->canManageMqlOnly() && $opty->stage !== 'leads') {
+            abort(403, 'Opty ini udah lewat stage Leads — akun lo gak bisa edit lagi.');
         }
 
         $this->editingId = $opty->id;
@@ -157,10 +157,10 @@ class OpportunityBoard extends Component
             abort(403, 'Akun lo gak punya izin nyimpen opty.');
         }
 
-        // Defense in depth: role MQL-only dipaksa stage-nya tetep 'mql' apapun
+        // Defense in depth: role Leads-only dipaksa stage-nya tetep 'leads' apapun
         // yang dikirim dari form (jaga-jaga kalau UI-nya ke-bypass).
         if (! $this->canManageFull() && $this->canManageMqlOnly()) {
-            $this->stage = 'mql';
+            $this->stage = 'leads';
         }
 
         $data = $this->validate([
@@ -171,7 +171,7 @@ class OpportunityBoard extends Component
             'gp_percentage' => 'required|numeric|min:0|max:100',
             'rating' => 'required|in:high,med,low',
             'expected_closing_date' => 'nullable|date',
-            'stage' => 'required|in:mql,sql,develop,won,lost',
+            'stage' => 'required|in:leads,develop,won,lost',
             'sales_id' => 'nullable|exists:team_members,id',
             'presales_id' => 'nullable|exists:team_members,id',
             'engineer_ids' => 'array',
@@ -228,9 +228,9 @@ class OpportunityBoard extends Component
             if (! $this->canManageMqlOnly()) {
                 return; // gak punya izin sama sekali
             }
-            // Role MQL-only cuma boleh geser opty yang lagi/mau ke MQL.
+            // Role Leads-only cuma boleh geser opty yang lagi/mau ke Leads.
             $opty = Opportunity::find($id);
-            if (! $opty || $opty->stage !== 'mql' || $stage !== 'mql') {
+            if (! $opty || $opty->stage !== 'leads' || $stage !== 'leads') {
                 return;
             }
         }
@@ -256,7 +256,7 @@ class OpportunityBoard extends Component
         ]);
         $this->category = 'cybersecurity';
         $this->rating = 'med';
-        $this->stage = 'mql';
+        $this->stage = 'leads';
         $this->resetErrorBag();
     }
 }

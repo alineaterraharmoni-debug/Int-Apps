@@ -51,7 +51,7 @@ class ReportPdfController extends Controller
                 'labels' => $current['byStage']->pluck('label')->toArray(),
                 'datasets' => [[
                     'data' => $current['byStage']->pluck('count')->toArray(),
-                    'backgroundColor' => ['#94A3B8', '#2AA9E0', '#F2A93B', '#16A34A', '#DC2626'],
+                    'backgroundColor' => ['#19A9DB', '#F6B01A', '#16A34A', '#DC2626'],
                 ]],
             ],
         ]);
