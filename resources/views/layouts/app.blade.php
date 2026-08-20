@@ -35,7 +35,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2/dist/tabler-icons.min.css">
     @livewireStyles
     <style>
         body{font-family:'Inter',sans-serif;background:#F5F6F9;color:#131B33;}
@@ -60,8 +59,8 @@
 </head>
 <body>
     <nav class="bg-navy sticky top-0 z-40 dot-grid">
-        <div class="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
-            <a href="{{ route('home') }}" class="flex items-center gap-2.5">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+            <a href="{{ route('home') }}" class="flex items-center gap-2.5 min-w-0">
                 {{-- Signature mark: 4 node terhubung ke 1 pusat — representasi modul superapp --}}
                 <svg width="26" height="26" viewBox="0 0 26 26" fill="none" class="shrink-0">
                     <line x1="13" y1="13" x2="4" y2="6" stroke="#19A9DB" stroke-width="1.3" opacity="0.7"/>
@@ -74,34 +73,53 @@
                     <circle cx="22" cy="20" r="2.4" fill="#8B5CF6"/>
                     <circle cx="13" cy="13" r="3.2" fill="#F5F6F9"/>
                 </svg>
-                <span class="font-display font-extrabold text-base md:text-lg text-white">
+                <span class="font-display font-extrabold text-base md:text-lg text-white truncate">
                     Opty <span class="text-amber">Tracker</span>
                 </span>
-                <span class="hidden sm:inline text-[11px] font-mono text-white/40 ml-1">Alinea Terra Harmoni</span>
+                <span class="hidden sm:inline text-[11px] font-mono text-white/40 ml-1 truncate">Alinea Terra Harmoni</span>
             </a>
-            {{-- Nav modul — cuma tampil di layar medium ke atas, di HP dipindah ke bottom nav --}}
-            <div class="hidden md:flex items-center gap-1 text-sm font-medium">
-                <a href="{{ route('home') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('home') ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80' }}">Home</a>
-                <a href="{{ route('crm.board') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.board') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">CRM</a>
-                <a href="{{ route('crm.report') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.report') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">Report</a>
-                <span class="w-px h-4 bg-white/10 mx-1"></span>
-                <span class="flex items-center gap-1.5 text-[11px] font-mono text-white/40 pl-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 signal-dot"></span> Online
-                </span>
+
+            <div class="flex items-center gap-3 shrink-0">
+                {{-- Nav modul — cuma tampil di layar medium ke atas, di HP dipindah ke bottom nav --}}
+                <div class="hidden md:flex items-center gap-1 text-sm font-medium">
+                    <a href="{{ route('home') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('home') ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80' }}">Home</a>
+                    <a href="{{ route('crm.board') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.board') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">CRM</a>
+                    <a href="{{ route('crm.report') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.report') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">Report</a>
+                    <span class="w-px h-4 bg-white/10 mx-1"></span>
+                    <span class="flex items-center gap-1.5 text-[11px] font-mono text-white/40 pl-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 signal-dot"></span> Online
+                    </span>
+                </div>
+
+                {{-- User chip + logout — selalu keliatan, mobile & desktop --}}
+                @auth
+                    <div class="flex items-center gap-2 pl-3 border-l border-white/10">
+                        <div class="w-7 h-7 rounded-full bg-sky/20 text-sky flex items-center justify-center text-[11px] font-display font-bold shrink-0">
+                            {{ collect(explode(' ', auth()->user()->name))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('') }}
+                        </div>
+                        <span class="hidden md:inline text-xs text-white/60 max-w-[110px] truncate">{{ auth()->user()->name }}</span>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="text-white/40 hover:text-white/80 transition" title="Keluar">
+                                <x-icon name="logout" class="w-[18px] h-[18px]" />
+                            </button>
+                        </form>
+                    </div>
+                @endauth
             </div>
         </div>
 
         {{-- Submenu kontekstual: cuma muncul kalau lagi di dalam modul CRM, tampil di ATAS sesuai spek mobile --}}
         @if (request()->routeIs('crm.*'))
             <div class="max-w-7xl mx-auto px-4 md:px-6 pb-2.5 flex gap-1.5 overflow-x-auto text-sm">
-                <a href="{{ route('crm.board') }}" class="px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.board') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                    <i class="ti ti-layout-kanban text-sm align-middle"></i> Board
+                <a href="{{ route('crm.board') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.board') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                    <x-icon name="layout-kanban" class="w-4 h-4" /> Board
                 </a>
-                <a href="{{ route('crm.report') }}" class="px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.report') || request()->routeIs('crm.report.*') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                    <i class="ti ti-chart-bar text-sm align-middle"></i> Report
+                <a href="{{ route('crm.report') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.report') || request()->routeIs('crm.report.*') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                    <x-icon name="chart-bar" class="w-4 h-4" /> Report
                 </a>
-                <a href="{{ route('crm.customers') }}" class="px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.customers') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                    <i class="ti ti-building-store text-sm align-middle"></i> Customer Insight
+                <a href="{{ route('crm.customers') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.customers') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                    <x-icon name="building-store" class="w-4 h-4" /> Customer Insight
                 </a>
             </div>
         @endif
@@ -115,13 +133,13 @@
     <nav class="md:hidden fixed bottom-0 inset-x-0 bg-navy border-t border-white/10 z-40" style="padding-bottom: env(safe-area-inset-bottom);">
         <div class="grid grid-cols-3">
             <a href="{{ route('home') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('home') ? 'text-sky' : 'text-white/40' }}">
-                <i class="ti ti-home text-xl {{ request()->routeIs('home') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}"></i> Home
+                <x-icon name="home" class="w-5 h-5 {{ request()->routeIs('home') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> Home
             </a>
             <a href="{{ route('crm.board') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('crm.board') ? 'text-sky' : 'text-white/40' }}">
-                <i class="ti ti-users text-xl {{ request()->routeIs('crm.board') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}"></i> CRM
+                <x-icon name="users" class="w-5 h-5 {{ request()->routeIs('crm.board') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> CRM
             </a>
             <a href="{{ route('crm.report') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('crm.report') ? 'text-sky' : 'text-white/40' }}">
-                <i class="ti ti-chart-bar text-xl {{ request()->routeIs('crm.report') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}"></i> Report
+                <x-icon name="chart-bar" class="w-5 h-5 {{ request()->routeIs('crm.report') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> Report
             </a>
         </div>
     </nav>

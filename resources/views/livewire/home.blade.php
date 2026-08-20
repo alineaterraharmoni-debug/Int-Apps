@@ -31,7 +31,7 @@
                 <div class="relative bg-white border border-dashed border-gray-200 rounded-2xl p-4 md:p-5 flex flex-col items-center text-center overflow-hidden opacity-60">
             @endif
                 <div class="w-12 h-12 md:w-14 md:h-14 rounded-full {{ $c['bg'] }} {{ $c['text'] }} flex items-center justify-center mb-3 transition-transform duration-200 {{ $m['available'] ? 'group-hover:scale-110' : '' }}">
-                    <i class="ti {{ $m['icon'] }} text-2xl"></i>
+                    <x-icon :name="$m['icon']" class="w-6 h-6" />
                 </div>
                 <div class="font-display font-bold text-sm md:text-base">{{ $m['name'] }}</div>
                 <div class="text-xs text-gray-500 mt-0.5 mb-2.5">{{ $m['desc'] }}</div>
