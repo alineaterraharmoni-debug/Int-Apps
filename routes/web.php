@@ -6,6 +6,7 @@ use App\Livewire\CustomerInsight;
 use App\Livewire\Home;
 use App\Livewire\OpportunityBoard;
 use App\Livewire\ReportDashboard;
+use App\Livewire\TeamMembers;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -23,5 +24,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/report', ReportDashboard::class)->name('report');
         Route::get('/report/export-pdf', [ReportPdfController::class, 'export'])->name('report.export-pdf');
         Route::get('/customers', CustomerInsight::class)->name('customers');
+        Route::get('/team', TeamMembers::class)->name('team');
     });
 });

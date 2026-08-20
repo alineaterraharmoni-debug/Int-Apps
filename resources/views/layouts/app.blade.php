@@ -121,6 +121,9 @@
                 <a href="{{ route('crm.customers') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.customers') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
                     <x-icon name="building-store" class="w-4 h-4" /> Customer Insight
                 </a>
+                <a href="{{ route('crm.team') }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition {{ request()->routeIs('crm.team') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
+                    <x-icon name="users" class="w-4 h-4" /> Tim
+                </a>
             </div>
         @endif
     </nav>
