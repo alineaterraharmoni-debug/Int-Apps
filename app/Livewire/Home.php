@@ -14,6 +14,7 @@ class Home extends Component
         $user = auth()->user();
         $canCrm = $user->hasPermission('crm.view');
         $canReport = $user->hasPermission('report.view');
+        $canDocument = $user->hasPermission('document.view');
 
         $modules = [
             [
@@ -43,10 +44,10 @@ class Home extends Component
                 'name' => 'Dokumen',
                 'desc' => 'Quotation, invoice, PO, BAST',
                 'icon' => 'file-text',
-                'route' => null,
-                'available' => false,
+                'route' => $canDocument ? route('documents.index') : null,
+                'available' => $canDocument,
                 'color' => 'amber',
-                'stat' => 'Segera hadir',
+                'stat' => $canDocument ? 'Quotation · Invoice · PO · BAST' : 'Gak ada akses',
             ],
             [
                 'key' => 'report',

@@ -1,11 +1,14 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DocumentPdfController;
 use App\Http\Controllers\ReportPdfController;
 use App\Livewire\AccountManagement;
 use App\Livewire\ChangePassword;
 use App\Livewire\CreateAccount;
 use App\Livewire\CustomerInsight;
+use App\Livewire\DocumentForm;
+use App\Livewire\DocumentList;
 use App\Livewire\Home;
 use App\Livewire\OpportunityBoard;
 use App\Livewire\ReportDashboard;
@@ -37,6 +40,17 @@ Route::middleware('auth')->group(function () {
         });
         Route::middleware('permission:team.view')->group(function () {
             Route::get('/team', TeamMembers::class)->name('team');
+        });
+    });
+
+    Route::prefix('documents')->name('documents.')->group(function () {
+        Route::middleware('permission:document.view')->group(function () {
+            Route::get('/', DocumentList::class)->name('index');
+            Route::get('/{id}/pdf', [DocumentPdfController::class, 'export'])->name('pdf');
+        });
+        Route::middleware('permission:document.manage')->group(function () {
+            Route::get('/create/{type}', DocumentForm::class)->name('create');
+            Route::get('/{id}/edit', DocumentForm::class)->name('edit');
         });
     });
 

@@ -27,6 +27,10 @@ class Permissions
             'team.view' => 'Lihat daftar tim',
             'team.manage' => 'Tambah/edit sales, presales, engineer',
         ],
+        'Dokumen' => [
+            'document.view' => 'Lihat & download dokumen (quotation/invoice/PO/BAST)',
+            'document.manage' => 'Bikin & edit dokumen baru',
+        ],
         'Ticketing (segera hadir)' => [
             'ticketing.view' => 'Akses modul tiketing begitu udah rilis',
         ],

@@ -18,7 +18,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Presales',
                 'slug' => 'presales',
-                'permissions' => ['crm.view', 'crm.manage', 'customer.view', 'customer.manage'],
+                'permissions' => ['crm.view', 'crm.manage', 'customer.view', 'customer.manage', 'document.view', 'document.manage'],
             ],
             [
                 'name' => 'Engineer',

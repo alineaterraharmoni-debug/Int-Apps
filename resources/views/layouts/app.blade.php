@@ -99,6 +99,9 @@
                     @if (auth()->user()->hasPermission('report.view'))
                         <a href="{{ route('crm.report') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('crm.report') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">Report</a>
                     @endif
+                    @if (auth()->user()->hasPermission('document.view'))
+                        <a href="{{ route('documents.index') }}" class="px-3 py-1.5 rounded-full transition {{ request()->routeIs('documents.*') ? 'bg-sky/15 text-sky' : 'text-white/50 hover:text-white/80' }}">Dokumen</a>
+                    @endif
                     <span class="w-px h-4 bg-white/10 mx-1"></span>
                     <span class="flex items-center gap-1.5 text-[11px] font-mono text-white/40 pl-1">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 signal-dot"></span> Online
@@ -190,6 +193,7 @@
     @php
         $bottomTabs = 1; // Home selalu ada
         if (auth()->user()->hasPermission('crm.view')) $bottomTabs++;
+        if (auth()->user()->hasPermission('document.view')) $bottomTabs++;
         if (auth()->user()->hasPermission('report.view')) $bottomTabs++;
     @endphp
     <nav class="md:hidden fixed bottom-0 inset-x-0 bg-navy border-t border-white/10 z-40" style="padding-bottom: env(safe-area-inset-bottom);">
@@ -200,6 +204,11 @@
             @if (auth()->user()->hasPermission('crm.view'))
                 <a href="{{ route('crm.board') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('crm.board') ? 'text-sky' : 'text-white/40' }}">
                     <x-icon name="users" class="w-5 h-5 {{ request()->routeIs('crm.board') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> CRM
+                </a>
+            @endif
+            @if (auth()->user()->hasPermission('document.view'))
+                <a href="{{ route('documents.index') }}" class="flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition {{ request()->routeIs('documents.*') ? 'text-sky' : 'text-white/40' }}">
+                    <x-icon name="file-text" class="w-5 h-5 {{ request()->routeIs('documents.*') ? 'drop-shadow-[0_0_6px_rgba(25,169,219,0.6)]' : '' }}" /> Dokumen
                 </a>
             @endif
             @if (auth()->user()->hasPermission('report.view'))
