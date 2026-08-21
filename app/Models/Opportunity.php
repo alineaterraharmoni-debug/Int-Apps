@@ -22,6 +22,8 @@ class Opportunity extends Model
         'expected_closing_date',
         'stage',
         'closed_at',
+        'lost_category',
+        'lost_reason',
         'sales_id',
         'presales_id',
         'next_action',
@@ -55,6 +57,16 @@ class Opportunity extends Model
         'high' => 'High',
         'med' => 'Medium',
         'low' => 'Low',
+    ];
+
+    const LOST_CATEGORIES = [
+        'harga' => 'Harga Kalah Kompetitif',
+        'kompetitor' => 'Kalah dari Kompetitor',
+        'budget' => 'Customer Gak Ada Budget',
+        'batal' => 'Project Dibatalkan Customer',
+        'timeline' => 'Timeline Gak Sesuai',
+        'internal' => 'Kendala Internal Alinea',
+        'lainnya' => 'Lainnya',
     ];
 
     public function customer(): BelongsTo
@@ -96,6 +108,11 @@ class Opportunity extends Model
     public function getRatingLabelAttribute(): string
     {
         return self::RATINGS[$this->rating] ?? $this->rating;
+    }
+
+    public function getLostCategoryLabelAttribute(): ?string
+    {
+        return $this->lost_category ? (self::LOST_CATEGORIES[$this->lost_category] ?? $this->lost_category) : null;
     }
 
     public function scopeFilter($query, array $filters)

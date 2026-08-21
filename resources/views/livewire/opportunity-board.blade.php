@@ -32,10 +32,21 @@
         class="flex md:grid md:grid-cols-4 gap-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory -mx-3 px-3 md:mx-0 md:px-0 pb-2"
         x-data="{}"
     >
+        @php
+            $stageColors = [
+                'leads' => ['bar' => 'bg-slate-400', 'text' => 'text-slate-500 dark:text-slate-300', 'bg' => 'bg-slate-50 dark:bg-slate-500/10'],
+                'develop' => ['bar' => 'bg-amber-400', 'text' => 'text-amber-600 dark:text-amber-300', 'bg' => 'bg-amber-50 dark:bg-amber-500/10'],
+                'won' => ['bar' => 'bg-emerald-500', 'text' => 'text-emerald-600 dark:text-emerald-300', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10'],
+                'lost' => ['bar' => 'bg-rose-500', 'text' => 'text-rose-600 dark:text-rose-300', 'bg' => 'bg-rose-50 dark:bg-rose-500/10'],
+            ];
+        @endphp
         @foreach ($stages as $key => $label)
-            @php $items = $grouped[$key] ?? collect(); @endphp
+            @php
+                $items = $grouped[$key] ?? collect();
+                $sc = $stageColors[$key] ?? $stageColors['leads'];
+            @endphp
             <div
-                class="bg-gray-100 dark:bg-gray-700 rounded-2xl p-3 min-h-[140px] shrink-0 w-[82vw] sm:w-[60vw] md:w-auto snap-start"
+                class="{{ $sc['bg'] }} border-2 border-transparent rounded-2xl p-3 min-h-[140px] shrink-0 w-[82vw] sm:w-[60vw] md:w-auto snap-start relative overflow-hidden"
                 x-on:dragover.prevent="$el.classList.add('ring-2','ring-sky-400')"
                 x-on:dragleave="$el.classList.remove('ring-2','ring-sky-400')"
                 x-on:drop.prevent="
@@ -43,10 +54,14 @@
                     $wire.moveStage(parseInt($event.dataTransfer.getData('text/plain')), '{{ $key }}')
                 "
             >
-                <div class="flex items-center justify-between mb-3 px-1">
+                <span class="absolute top-0 left-0 right-0 h-1 {{ $sc['bar'] }}"></span>
+                <div class="flex items-center justify-between mb-3 px-1 pt-1">
                     <div>
-                        <div class="font-display font-bold text-sm">{{ $label }}</div>
-                        <div class="text-xs font-mono text-gray-400 dark:text-gray-500">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full {{ $sc['bar'] }}"></span>
+                            <div class="font-display font-bold text-sm {{ $sc['text'] }}">{{ $label }}</div>
+                        </div>
+                        <div class="text-xs font-mono text-gray-400 dark:text-gray-500 ml-3.5">
                             Rp {{ number_format($items->sum('tcv'), 0, ',', '.') }}
                         </div>
                     </div>
@@ -109,7 +124,7 @@
     </div>
     @else
         {{-- ===== List View ===== --}}
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-2 gap-3">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-3 gap-3">
             <div>
                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Filter Stage</label>
                 <select wire:model.live="listFilterStage" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
@@ -126,6 +141,14 @@
                     @foreach ($ratings as $val => $label)
                         <option value="{{ $val }}">{{ $label }}</option>
                     @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Per Halaman</label>
+                <select wire:model.live="listPerPage" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
                 </select>
             </div>
         </div>
@@ -170,6 +193,15 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <div class="flex items-center justify-between mt-3 flex-wrap gap-2">
+            <div class="text-xs text-gray-400 dark:text-gray-500">
+                Nampilin {{ $listItems->firstItem() ?? 0 }}–{{ $listItems->lastItem() ?? 0 }} dari {{ $listItems->total() }} opty
+            </div>
+            <div>
+                {{ $listItems->links() }}
+            </div>
         </div>
     @endif
     @if ($showModal)
@@ -245,7 +277,7 @@
                         <div>
                             <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Stage</label>
                             @if ($canManageFull)
-                                <select wire:model="stage" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                <select wire:model.live="stage" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                                     @foreach ($stages as $val => $label)
                                         <option value="{{ $val }}">{{ $label }}</option>
                                     @endforeach
@@ -260,6 +292,26 @@
                             <input type="date" wire:model="expected_closing_date" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                         </div>
                     </div>
+
+                    @if ($stage === 'lost')
+                        <div class="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl p-3">
+                            @if ($promptingLostReason)
+                                <p class="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-2">
+                                    Opty ini baru dipindah ke Lost — isi alasannya biar kepake buat evaluasi nanti.
+                                </p>
+                            @endif
+                            <label class="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">Kategori Alasan Drop</label>
+                            <select wire:model="lost_category" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm mb-2">
+                                <option value="">— pilih alasan —</option>
+                                @foreach ($lostCategories as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('lost_category') <p class="text-xs text-red-500 mb-2">{{ $message }}</p> @enderror
+                            <label class="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">Detail Tambahan (opsional)</label>
+                            <textarea wire:model="lost_reason" rows="2" placeholder="cth. Customer pilih kompetitor karena harga 15% lebih murah" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>
+                        </div>
+                    @endif
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>

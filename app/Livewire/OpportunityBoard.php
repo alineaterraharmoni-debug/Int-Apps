@@ -8,18 +8,23 @@ use App\Models\TeamMember;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 class OpportunityBoard extends Component
 {
+    use WithPagination;
+
     // ----- Tampilan Board vs List -----
     public string $viewMode = 'board'; // board | list
     public string $listFilterStage = '';
     public string $listFilterRating = '';
+    public int $listPerPage = 25;
 
     // ----- Modal & form state -----
     public bool $showModal = false;
     public ?int $editingId = null;
+    public bool $promptingLostReason = false;
 
     #[Validate('required|string|max:150')]
     public string $title = '';
@@ -49,6 +54,9 @@ class OpportunityBoard extends Component
     #[Validate('required|in:leads,develop,won,lost')]
     public string $stage = 'leads';
 
+    public string $lost_category = '';
+    public string $lost_reason = '';
+
     #[Validate('nullable|exists:team_members,id')]
     public $sales_id = null;
 
@@ -64,6 +72,21 @@ class OpportunityBoard extends Component
     #[Validate('nullable|string')]
     public ?string $notes = null;
 
+    public function updatingListPerPage(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingListFilterStage(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingListFilterRating(): void
+    {
+        $this->resetPage();
+    }
+
     public function render()
     {
         $opportunities = Opportunity::with(['customer', 'sales', 'presales', 'engineers'])
@@ -75,7 +98,7 @@ class OpportunityBoard extends Component
             ->when($this->listFilterStage, fn ($q, $v) => $q->where('stage', $v))
             ->when($this->listFilterRating, fn ($q, $v) => $q->where('rating', $v))
             ->orderByDesc('updated_at')
-            ->get();
+            ->paginate($this->listPerPage);
 
         $canCreateOrEdit = $this->canManageFull() || $this->canManageMqlOnly();
 
@@ -85,6 +108,7 @@ class OpportunityBoard extends Component
             'stages' => Opportunity::STAGES,
             'categories' => Opportunity::CATEGORIES,
             'ratings' => Opportunity::RATINGS,
+            'lostCategories' => Opportunity::LOST_CATEGORIES,
             'grouped' => $opportunities,
             'listItems' => $listItems,
             'customerOptions' => Customer::orderBy('name')->get(),
@@ -129,7 +153,7 @@ class OpportunityBoard extends Component
         $this->showModal = true;
     }
 
-    public function openEdit(int $id): void
+    public function openEdit(int $id, bool $promptLostReason = false): void
     {
         if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
             abort(403, 'Akun lo cuma bisa lihat pipeline ini, gak bisa edit opty.');
@@ -151,12 +175,15 @@ class OpportunityBoard extends Component
         $this->rating = $opty->rating;
         $this->expected_closing_date = optional($opty->expected_closing_date)->format('Y-m-d');
         $this->stage = $opty->stage;
+        $this->lost_category = $opty->lost_category ?? '';
+        $this->lost_reason = $opty->lost_reason ?? '';
         $this->sales_id = $opty->sales_id;
         $this->presales_id = $opty->presales_id;
         $this->engineer_ids = $opty->engineers->pluck('id')->map(fn ($v) => (string) $v)->toArray();
         $this->next_action = $opty->next_action;
         $this->notes = $opty->notes;
 
+        $this->promptingLostReason = $promptLostReason;
         $this->showModal = true;
     }
 
@@ -184,7 +211,7 @@ class OpportunityBoard extends Component
             $this->stage = 'leads';
         }
 
-        $data = $this->validate([
+        $rules = [
             'title' => 'required|string|max:150',
             'customer_id' => 'required|exists:customers,id',
             'category' => 'required|in:cybersecurity,cctv,data_center_networking,enterprise_networking,web_development,lainnya',
@@ -198,7 +225,14 @@ class OpportunityBoard extends Component
             'engineer_ids' => 'array',
             'next_action' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
-        ]);
+        ];
+
+        if ($this->stage === 'lost') {
+            $rules['lost_category'] = 'required|string';
+            $rules['lost_reason'] = 'nullable|string';
+        }
+
+        $data = $this->validate($rules);
 
         $engineerIds = $data['engineer_ids'] ?? [];
         unset($data['engineer_ids']);
@@ -208,10 +242,16 @@ class OpportunityBoard extends Component
 
         if ($this->stage === 'won') {
             $data['closed_at'] = now()->toDateString();
+            $data['lost_category'] = null;
+            $data['lost_reason'] = null;
         } elseif ($this->stage === 'lost') {
             $data['closed_at'] = now()->toDateString();
+            $data['lost_category'] = $this->lost_category;
+            $data['lost_reason'] = $this->lost_reason ?: null;
         } else {
             $data['closed_at'] = null;
+            $data['lost_category'] = null;
+            $data['lost_reason'] = null;
         }
 
         if ($this->editingId) {
@@ -259,12 +299,23 @@ class OpportunityBoard extends Component
         $opty = Opportunity::findOrFail($id);
         $opty->stage = $stage;
         $opty->closed_at = in_array($stage, ['won', 'lost'], true) ? now()->toDateString() : null;
+        if ($stage !== 'lost') {
+            $opty->lost_category = null;
+            $opty->lost_reason = null;
+        }
         $opty->save();
+
+        // Baru di-drop ke Lost dan belum ada alasannya — langsung buka modal
+        // minta diisi, biar datanya kecatet dari awal buat evaluasi nanti.
+        if ($stage === 'lost' && ! $opty->lost_category) {
+            $this->openEdit($opty->id, promptLostReason: true);
+        }
     }
 
     public function closeModal(): void
     {
         $this->showModal = false;
+        $this->promptingLostReason = false;
         $this->resetForm();
     }
 
@@ -274,6 +325,7 @@ class OpportunityBoard extends Component
             'editingId', 'title', 'customer_id', 'tcv', 'gp_percentage',
             'expected_closing_date', 'sales_id', 'presales_id', 'engineer_ids',
             'next_action', 'notes', 'showQuickAddCustomer', 'new_customer_name',
+            'lost_category', 'lost_reason',
         ]);
         $this->category = 'cybersecurity';
         $this->rating = 'med';
