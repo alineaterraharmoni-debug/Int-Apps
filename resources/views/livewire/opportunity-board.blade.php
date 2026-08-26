@@ -542,7 +542,7 @@
                                 <div class="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl p-3">
                                     @if ($promptingLostReason)
                                         <p class="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-2">
-                                            Opty ini baru dipindah ke Lost — isi alasannya biar kepake buat evaluasi nanti.
+                                            Mau dipindah ke Lost — isi alasannya dulu, baru bisa disimpan & beneran pindah stage.
                                         </p>
                                     @endif
                                     <label class="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">Kategori Alasan Drop</label>
@@ -562,7 +562,7 @@
                                 <div class="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-3">
                                     @if ($promptingWonReason)
                                         <p class="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-2">
-                                            Opty ini baru di-close WON — isi alasan menangnya biar kepake buat evaluasi & replikasi strategi nanti.
+                                            Mau di-close WON — isi alasan menangnya dulu, baru bisa disimpan & beneran pindah stage.
                                         </p>
                                     @endif
                                     <label class="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">Kategori Alasan Menang</label>

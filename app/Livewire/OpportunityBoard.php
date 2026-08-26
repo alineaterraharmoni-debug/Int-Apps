@@ -314,7 +314,7 @@ class OpportunityBoard extends Component
         $this->showModal = true;
     }
 
-    public function openEdit(int $id, array $missingFields = []): void
+    public function openEdit(int $id, array $missingFields = [], ?string $forcedStage = null): void
     {
         if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
             abort(403, 'Akun lo cuma bisa lihat pipeline ini, gak bisa edit opty.');
@@ -335,7 +335,7 @@ class OpportunityBoard extends Component
         $this->gp_percentage = (string) $opty->gp_percentage;
         $this->rating = $opty->rating;
         $this->expected_closing_date = optional($opty->expected_closing_date)->format('Y-m-d');
-        $this->stage = $opty->stage;
+        $this->stage = $forcedStage ?? $opty->stage;
         $this->lost_category = $opty->lost_category ?? '';
         $this->lost_reason = $opty->lost_reason ?? '';
         $this->won_category = $opty->won_category ?? '';
@@ -549,6 +549,20 @@ class OpportunityBoard extends Component
         }
 
         $opty = Opportunity::with('engineers')->findOrFail($id);
+
+        // PENTING: dicek DULU sebelum ada apapun yang ke-simpan. Kalau stage
+        // tujuan butuh data yang masih kosong (misal alasan Menang/Kalah),
+        // jangan commit stage-nya sama sekali — buka modal dengan stage
+        // tujuan udah ke-pre-fill, user lengkapi & klik Simpan baru beneran
+        // pindah lewat persist() yang tervalidasi penuh. Drag doang gak
+        // cukup buat mindahin opty ke stage yang butuh data wajib.
+        $missing = $this->missingFieldsForStage($opty, $stage);
+        if ($missing) {
+            $this->openEdit($opty->id, missingFields: $missing, forcedStage: $stage);
+
+            return;
+        }
+
         $opty->stage = $stage;
         $opty->closed_at = in_array($stage, ['won', 'lost'], true) ? now()->toDateString() : null;
         if ($stage !== 'lost') {
@@ -560,15 +574,6 @@ class OpportunityBoard extends Component
             $opty->won_reason = null;
         }
         $opty->save();
-
-        // Drag & drop motong jalur form, jadi field yang jadi wajib di stage
-        // baru bisa aja masih kosong (misal geser ke Develop tapi belum ada
-        // Next Action). Kalau ketauan ada yang kurang, langsung buka modal
-        // edit-nya biar user melengkapin — bukan warning, tapi guiding.
-        $missing = $this->missingFieldsForStage($opty, $stage);
-        if ($missing) {
-            $this->openEdit($opty->id, missingFields: $missing);
-        }
     }
 
     /**
