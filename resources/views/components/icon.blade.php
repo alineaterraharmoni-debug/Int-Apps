@@ -16,6 +16,12 @@ $icons = [
     'moon' => '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" />',
     'chevron-down' => '<path d="M6 9l6 6 6-6" />',
     'download' => '<path d="M12 4v11" /><path d="M7.5 11.5 12 16l4.5-4.5" /><path d="M5 19.5h14" />',
+    'search' => '<circle cx="10.5" cy="10.5" r="6.5" /><path d="M20 20l-4.8-4.8" />',
+    'sliders' => '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13M21 18h-1" /><circle cx="16" cy="6" r="2" /><circle cx="8" cy="12" r="2" /><circle cx="18" cy="18" r="2" />',
+    'arrow-up-down' => '<path d="M8 4v16M8 4 4.5 7.5M8 4l3.5 3.5" /><path d="M16 20V4M16 20l3.5-3.5M16 20l-3.5-3.5" />',
+    'alert' => '<path d="M12 3 2 20h20L12 3Z" /><path d="M12 10v4" /><circle cx="12" cy="17" r="0.6" fill="currentColor" />',
+    'plus' => '<path d="M12 5v14M5 12h14" />',
+    'x' => '<path d="M6 6l12 12M18 6 6 18" />',
 ];
 $path = $icons[$name] ?? '';
 @endphp

@@ -65,6 +65,9 @@
         @media (prefers-reduced-motion: reduce){
             .signal-dot{ animation: none; }
         }
+        /* Alpine x-cloak: sembunyiin elemen sebelum Alpine selesai init, biar
+           gak "kedip" nampilin konten yang belum di-toggle sama x-show. */
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body>

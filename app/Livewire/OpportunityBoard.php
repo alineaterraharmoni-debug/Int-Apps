@@ -17,14 +17,28 @@ class OpportunityBoard extends Component
 
     // ----- Tampilan Board vs List -----
     public string $viewMode = 'board'; // board | list
+
+    // ----- Search & filter Board -----
+    public string $boardSearch = '';
+
+    // ----- Search & filter List -----
+    public string $listSearch = '';
     public string $listFilterStage = '';
     public string $listFilterRating = '';
+    public string $listFilterCategory = '';
+    public $listFilterSales = '';
+    public $listFilterCustomer = '';
+    public bool $showListFilters = false;
     public int $listPerPage = 25;
+    public string $listSortBy = 'updated_at';
+    public string $listSortDir = 'desc';
 
     // ----- Modal & form state -----
     public bool $showModal = false;
     public ?int $editingId = null;
     public bool $promptingLostReason = false;
+    public bool $promptingWonReason = false;
+    public string $activeTab = 'info'; // info | stage | tim | catatan
 
     #[Validate('required|string|max:150')]
     public string $title = '';
@@ -56,6 +70,8 @@ class OpportunityBoard extends Component
 
     public string $lost_category = '';
     public string $lost_reason = '';
+    public string $won_category = '';
+    public string $won_reason = '';
 
     #[Validate('nullable|exists:team_members,id')]
     public $sales_id = null;
@@ -85,6 +101,17 @@ class OpportunityBoard extends Component
         }
     }
 
+    public function updatingBoardSearch(): void
+    {
+        // Gak perlu resetPage — board gak dipaginate, tapi biar konsisten
+        // sama pola updating* lain di komponen ini.
+    }
+
+    public function updatingListSearch(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatingListPerPage(): void
     {
         $this->resetPage();
@@ -100,6 +127,46 @@ class OpportunityBoard extends Component
         $this->resetPage();
     }
 
+    public function updatingListFilterCategory(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingListFilterSales(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingListFilterCustomer(): void
+    {
+        $this->resetPage();
+    }
+
+    public function sortList(string $field): void
+    {
+        if (! in_array($field, ['title', 'customer', 'stage', 'rating'], true)) {
+            return;
+        }
+
+        if ($this->listSortBy === $field) {
+            $this->listSortDir = $this->listSortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->listSortBy = $field;
+            $this->listSortDir = 'asc';
+        }
+
+        $this->resetPage();
+    }
+
+    public function resetListFilters(): void
+    {
+        $this->reset([
+            'listSearch', 'listFilterStage', 'listFilterRating',
+            'listFilterCategory', 'listFilterSales', 'listFilterCustomer',
+        ]);
+        $this->resetPage();
+    }
+
     public function render()
     {
         // Urutan prioritas kartu di tiap kolom board: Rating High duluan,
@@ -109,6 +176,9 @@ class OpportunityBoard extends Component
         $ratingOrder = ['high' => 0, 'med' => 1, 'low' => 2];
 
         $opportunities = Opportunity::with(['customer', 'sales', 'presales', 'engineers'])
+            ->when($this->boardSearch, fn ($q, $v) => $q->where(fn ($qq) => $qq
+                ->where('title', 'like', "%{$v}%")
+                ->orWhere('customer_name', 'like', "%{$v}%")))
             ->orderByDesc('updated_at')
             ->get()
             ->sortBy(fn ($o) => $o->expected_closing_date?->timestamp ?? PHP_INT_MAX)
@@ -116,14 +186,31 @@ class OpportunityBoard extends Component
             ->values()
             ->groupBy('stage');
 
-        // Filter dipusatkan di satu closure biar query list & query total TCV
-        // selalu konsisten — kalau nanti nambah filter baru, cukup edit di sini aja.
+        // Filter + search dipusatkan di satu closure biar query list & query
+        // total TCV selalu konsisten — kalau nanti nambah filter baru,
+        // cukup edit di sini aja.
         $applyListFilters = fn ($query) => $query
+            ->when($this->listSearch, fn ($q, $v) => $q->where(fn ($qq) => $qq
+                ->where('title', 'like', "%{$v}%")
+                ->orWhere('customer_name', 'like', "%{$v}%")))
             ->when($this->listFilterStage, fn ($q, $v) => $q->where('stage', $v))
-            ->when($this->listFilterRating, fn ($q, $v) => $q->where('rating', $v));
+            ->when($this->listFilterRating, fn ($q, $v) => $q->where('rating', $v))
+            ->when($this->listFilterCategory, fn ($q, $v) => $q->where('category', $v))
+            ->when($this->listFilterSales, fn ($q, $v) => $q->where('sales_id', $v))
+            ->when($this->listFilterCustomer, fn ($q, $v) => $q->where('customer_id', $v));
+
+        $sortDir = $this->listSortDir === 'desc' ? 'desc' : 'asc';
 
         $listItems = $applyListFilters(Opportunity::with(['customer']))
-            ->orderByDesc('updated_at')
+            ->when($this->listSortBy === 'title', fn ($q) => $q->orderBy('title', $sortDir))
+            ->when($this->listSortBy === 'customer', fn ($q) => $q->orderBy('customer_name', $sortDir))
+            ->when($this->listSortBy === 'stage', fn ($q) => $q->orderByRaw(
+                "FIELD(stage,'leads','develop','won','lost') ".($sortDir === 'desc' ? 'desc' : 'asc')
+            ))
+            ->when($this->listSortBy === 'rating', fn ($q) => $q->orderByRaw(
+                "FIELD(rating,'low','med','high') ".($sortDir === 'desc' ? 'desc' : 'asc')
+            ))
+            ->when(! in_array($this->listSortBy, ['title', 'customer', 'stage', 'rating'], true), fn ($q) => $q->orderByDesc('updated_at'))
             ->paginate($this->listPerPage);
 
         // Total TCV dari SEMUA opty yang match filter (bukan cuma yang lagi
@@ -139,6 +226,7 @@ class OpportunityBoard extends Component
             'categories' => Opportunity::CATEGORIES,
             'ratings' => Opportunity::RATINGS,
             'lostCategories' => Opportunity::LOST_CATEGORIES,
+            'wonCategories' => Opportunity::WON_CATEGORIES,
             'grouped' => $opportunities,
             'listItems' => $listItems,
             'listTotalTcv' => $listTotalTcv,
@@ -167,6 +255,27 @@ class OpportunityBoard extends Component
         return auth()->user()->hasPermission('crm.manage_mql_only');
     }
 
+    /**
+     * Mapping field validasi -> tab tempat field itu berada, dipakai buat
+     * auto-switch tab ke yang ada error-nya (lihat try/catch di persist()).
+     */
+    private function tabForErrors(array $fields): string
+    {
+        $map = [
+            'stage' => ['stage', 'expected_closing_date', 'lost_category', 'lost_reason', 'won_category', 'won_reason'],
+            'tim' => ['sales_id', 'presales_id', 'engineer_ids'],
+            'catatan' => ['next_action', 'notes'],
+        ];
+
+        foreach ($map as $tab => $tabFields) {
+            if (array_intersect($fields, $tabFields)) {
+                return $tab;
+            }
+        }
+
+        return 'info';
+    }
+
     public function openCreate(?string $stage = null): void
     {
         if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
@@ -181,10 +290,11 @@ class OpportunityBoard extends Component
         if (! $this->canManageFull() && $this->canManageMqlOnly()) {
             $this->stage = 'leads';
         }
+        $this->activeTab = 'info';
         $this->showModal = true;
     }
 
-    public function openEdit(int $id, bool $promptLostReason = false): void
+    public function openEdit(int $id, bool $promptLostReason = false, bool $promptWonReason = false): void
     {
         if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
             abort(403, 'Akun lo cuma bisa lihat pipeline ini, gak bisa edit opty.');
@@ -208,6 +318,8 @@ class OpportunityBoard extends Component
         $this->stage = $opty->stage;
         $this->lost_category = $opty->lost_category ?? '';
         $this->lost_reason = $opty->lost_reason ?? '';
+        $this->won_category = $opty->won_category ?? '';
+        $this->won_reason = $opty->won_reason ?? '';
         $this->sales_id = $opty->sales_id;
         $this->presales_id = $opty->presales_id;
         $this->engineer_ids = $opty->engineers->pluck('id')->map(fn ($v) => (string) $v)->toArray();
@@ -215,6 +327,8 @@ class OpportunityBoard extends Component
         $this->notes = $opty->notes;
 
         $this->promptingLostReason = $promptLostReason;
+        $this->promptingWonReason = $promptWonReason;
+        $this->activeTab = ($promptLostReason || $promptWonReason) ? 'stage' : 'info';
         $this->showModal = true;
     }
 
@@ -230,7 +344,11 @@ class OpportunityBoard extends Component
         $this->showQuickAddCustomer = false;
     }
 
-    public function save(): void
+    /**
+     * Logic simpan dipusatkan di sini (dipisah dari save()) biar bisa dipakai
+     * bareng sama saveAndAddAnother() tanpa duplikat validasi & persist logic.
+     */
+    private function persist(): Opportunity
     {
         if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
             abort(403, 'Akun lo gak punya izin nyimpen opty.');
@@ -263,7 +381,20 @@ class OpportunityBoard extends Component
             $rules['lost_reason'] = 'nullable|string';
         }
 
-        $data = $this->validate($rules);
+        if ($this->stage === 'won') {
+            $rules['won_category'] = 'required|string';
+            $rules['won_reason'] = 'nullable|string';
+        }
+
+        // Kalau validasi gagal, lompat otomatis ke tab yang isinya error, biar
+        // user gak bingung nyari kenapa tombol Simpan gak ngefek — soalnya field
+        // yang salah bisa aja lagi ada di tab yang gak lagi aktif dilihat.
+        try {
+            $data = $this->validate($rules);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->activeTab = $this->tabForErrors(array_keys($e->errors()));
+            throw $e;
+        }
 
         $engineerIds = $data['engineer_ids'] ?? [];
         unset($data['engineer_ids']);
@@ -275,14 +406,20 @@ class OpportunityBoard extends Component
             $data['closed_at'] = now()->toDateString();
             $data['lost_category'] = null;
             $data['lost_reason'] = null;
+            $data['won_category'] = $this->won_category;
+            $data['won_reason'] = $this->won_reason ?: null;
         } elseif ($this->stage === 'lost') {
             $data['closed_at'] = now()->toDateString();
             $data['lost_category'] = $this->lost_category;
             $data['lost_reason'] = $this->lost_reason ?: null;
+            $data['won_category'] = null;
+            $data['won_reason'] = null;
         } else {
             $data['closed_at'] = null;
             $data['lost_category'] = null;
             $data['lost_reason'] = null;
+            $data['won_category'] = null;
+            $data['won_reason'] = null;
         }
 
         if ($this->editingId) {
@@ -294,8 +431,31 @@ class OpportunityBoard extends Component
 
         $opty->engineers()->sync($engineerIds);
 
+        return $opty;
+    }
+
+    public function save(): void
+    {
+        $this->persist();
         $this->dispatch('opty-saved');
         $this->closeModal();
+    }
+
+    /**
+     * Quick action buat input berantai (misal abis event/pameran) — simpen
+     * opty yang lagi diisi, terus modal langsung reset ke form kosong baru
+     * tanpa perlu ditutup-buka lagi.
+     */
+    public function saveAndAddAnother(): void
+    {
+        $this->persist();
+        $this->dispatch('opty-saved');
+
+        $this->resetForm();
+        $this->promptingLostReason = false;
+        $this->promptingWonReason = false;
+        $this->activeTab = 'info';
+        // showModal sengaja gak disentuh — tetep kebuka buat opty berikutnya.
     }
 
     public function delete(): void
@@ -334,12 +494,18 @@ class OpportunityBoard extends Component
             $opty->lost_category = null;
             $opty->lost_reason = null;
         }
+        if ($stage !== 'won') {
+            $opty->won_category = null;
+            $opty->won_reason = null;
+        }
         $opty->save();
 
-        // Baru di-drop ke Lost dan belum ada alasannya — langsung buka modal
-        // minta diisi, biar datanya kecatet dari awal buat evaluasi nanti.
+        // Baru di-drop ke Lost/WON dan belum ada alasannya — langsung buka
+        // modal minta diisi, biar datanya kecatet dari awal buat evaluasi nanti.
         if ($stage === 'lost' && ! $opty->lost_category) {
             $this->openEdit($opty->id, promptLostReason: true);
+        } elseif ($stage === 'won' && ! $opty->won_category) {
+            $this->openEdit($opty->id, promptWonReason: true);
         }
     }
 
@@ -347,6 +513,7 @@ class OpportunityBoard extends Component
     {
         $this->showModal = false;
         $this->promptingLostReason = false;
+        $this->promptingWonReason = false;
         $this->resetForm();
     }
 
@@ -356,7 +523,7 @@ class OpportunityBoard extends Component
             'editingId', 'title', 'customer_id', 'tcv', 'gp_percentage',
             'expected_closing_date', 'sales_id', 'presales_id', 'engineer_ids',
             'next_action', 'notes', 'showQuickAddCustomer', 'new_customer_name',
-            'lost_category', 'lost_reason',
+            'lost_category', 'lost_reason', 'won_category', 'won_reason',
         ]);
         $this->category = 'cybersecurity';
         $this->rating = 'med';

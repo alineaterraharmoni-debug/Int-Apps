@@ -43,7 +43,8 @@ class OpportunityExportController extends Controller
             fputcsv($out, [
                 'Judul Opty', 'Customer', 'Kategori', 'Stage', 'Rating',
                 'TCV (Rp)', 'GP (%)', 'GP Nominal (Rp)',
-                'Sales', 'Presales', 'Ekspektasi Closing', 'Tanggal Dibuat',
+                'Sales', 'Presales', 'Ekspektasi Closing', 'Telat?',
+                'Alasan Menang', 'Alasan Kalah', 'Tanggal Dibuat',
             ]);
 
             foreach ($opportunities as $o) {
@@ -59,6 +60,9 @@ class OpportunityExportController extends Controller
                     $o->sales?->name ?? '',
                     $o->presales?->name ?? '',
                     optional($o->expected_closing_date)->format('Y-m-d') ?? '',
+                    $o->is_overdue ? 'Ya' : '',
+                    $o->won_category_label ?? '',
+                    $o->lost_category_label ?? '',
                     $o->created_at->format('Y-m-d'),
                 ]);
             }

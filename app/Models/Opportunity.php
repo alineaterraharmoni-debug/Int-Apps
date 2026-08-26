@@ -24,6 +24,8 @@ class Opportunity extends Model
         'closed_at',
         'lost_category',
         'lost_reason',
+        'won_category',
+        'won_reason',
         'sales_id',
         'presales_id',
         'next_action',
@@ -66,6 +68,15 @@ class Opportunity extends Model
         'batal' => 'Project Dibatalkan Customer',
         'timeline' => 'Timeline Gak Sesuai',
         'internal' => 'Kendala Internal Alinea',
+        'lainnya' => 'Lainnya',
+    ];
+
+    const WON_CATEGORIES = [
+        'harga' => 'Harga Kompetitif',
+        'relasi' => 'Relasi / Trust Existing',
+        'produk' => 'Kecocokan Produk / Solusi',
+        'timing' => 'Timing Pas',
+        'presales' => 'Presales & Demo Kuat',
         'lainnya' => 'Lainnya',
     ];
 
@@ -113,6 +124,20 @@ class Opportunity extends Model
     public function getLostCategoryLabelAttribute(): ?string
     {
         return $this->lost_category ? (self::LOST_CATEGORIES[$this->lost_category] ?? $this->lost_category) : null;
+    }
+
+    public function getWonCategoryLabelAttribute(): ?string
+    {
+        return $this->won_category ? (self::WON_CATEGORIES[$this->won_category] ?? $this->won_category) : null;
+    }
+
+    // Opty dianggap "telat" kalau ekspektasi closing-nya udah lewat tapi
+    // masih nyangkut di Leads/Develop (belum di-close WON atau LOST).
+    public function getIsOverdueAttribute(): bool
+    {
+        return $this->expected_closing_date !== null
+            && $this->expected_closing_date->isPast()
+            && ! in_array($this->stage, ['won', 'lost'], true);
     }
 
     public function scopeFilter($query, array $filters)
