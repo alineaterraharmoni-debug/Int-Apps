@@ -38,6 +38,7 @@ class OpportunityBoard extends Component
     public ?int $editingId = null;
     public bool $promptingLostReason = false;
     public bool $promptingWonReason = false;
+    public array $missingFieldsNotice = [];
     public string $activeTab = 'info'; // info | stage | tim | catatan
 
     #[Validate('required|string|max:150')]
@@ -237,6 +238,7 @@ class OpportunityBoard extends Component
             'canManageFull' => $this->canManageFull(),
             'canManageMqlOnly' => $this->canManageMqlOnly(),
             'canCreateOrEdit' => $canCreateOrEdit,
+            'missingFieldsLabels' => $this->fieldLabels(),
         ]);
     }
 
@@ -276,6 +278,23 @@ class OpportunityBoard extends Component
         return 'info';
     }
 
+    /**
+     * Label ramah-baca buat field yang dipakai di banner "lengkapi dulu"
+     * pas modal kebuka otomatis abis drag & drop pindah stage.
+     */
+    private function fieldLabels(): array
+    {
+        return [
+            'sales_id' => 'Sales',
+            'presales_id' => 'Presales',
+            'engineer_ids' => 'Tim Engineer',
+            'expected_closing_date' => 'Ekspektasi Closing',
+            'next_action' => 'Next Action',
+            'won_category' => 'Alasan Menang',
+            'lost_category' => 'Alasan Drop',
+        ];
+    }
+
     public function openCreate(?string $stage = null): void
     {
         if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
@@ -290,11 +309,12 @@ class OpportunityBoard extends Component
         if (! $this->canManageFull() && $this->canManageMqlOnly()) {
             $this->stage = 'leads';
         }
+        $this->missingFieldsNotice = [];
         $this->activeTab = 'info';
         $this->showModal = true;
     }
 
-    public function openEdit(int $id, bool $promptLostReason = false, bool $promptWonReason = false): void
+    public function openEdit(int $id, array $missingFields = []): void
     {
         if (! $this->canManageFull() && ! $this->canManageMqlOnly()) {
             abort(403, 'Akun lo cuma bisa lihat pipeline ini, gak bisa edit opty.');
@@ -326,9 +346,10 @@ class OpportunityBoard extends Component
         $this->next_action = $opty->next_action;
         $this->notes = $opty->notes;
 
-        $this->promptingLostReason = $promptLostReason;
-        $this->promptingWonReason = $promptWonReason;
-        $this->activeTab = ($promptLostReason || $promptWonReason) ? 'stage' : 'info';
+        $this->missingFieldsNotice = $missingFields;
+        $this->promptingLostReason = in_array('lost_category', $missingFields, true);
+        $this->promptingWonReason = in_array('won_category', $missingFields, true);
+        $this->activeTab = $missingFields ? $this->tabForErrors($missingFields) : 'info';
         $this->showModal = true;
     }
 
@@ -367,30 +388,69 @@ class OpportunityBoard extends Component
             'tcv' => 'required|numeric|min:0',
             'gp_percentage' => 'required|numeric|min:0|max:100',
             'rating' => 'required|in:high,med,low',
-            'expected_closing_date' => 'nullable|date',
             'stage' => 'required|in:leads,develop,won,lost',
-            'sales_id' => 'nullable|exists:team_members,id',
-            'presales_id' => 'nullable|exists:team_members,id',
-            'engineer_ids' => 'array',
-            'next_action' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
         ];
 
-        if ($this->stage === 'lost') {
-            $rules['lost_category'] = 'required|string';
-            $rules['lost_reason'] = 'nullable|string';
+        // Data mandatory per stage — makin jauh opty-nya di pipeline, makin
+        // banyak yang wajib keisi. Berlaku pas create opty baru MAUPUN pas
+        // pindah stage lewat form edit:
+        // - Leads   : field dasar aja (di atas) + WAJIB ada Sales yang pegang.
+        // - Develop : + Ekspektasi Closing & Next Action wajib ada (biar bisa di-forecast).
+        // - WON     : + Alasan Menang, Presales, dan minimal 1 Tim Engineer wajib diisi.
+        // - LOST    : + Alasan Drop wajib diisi.
+        $rules['sales_id'] = 'required|exists:team_members,id';
+
+        if (in_array($this->stage, ['develop', 'won'], true)) {
+            $rules['expected_closing_date'] = 'required|date';
+            $rules['next_action'] = 'required|string|max:255';
+        } else {
+            $rules['expected_closing_date'] = 'nullable|date';
+            $rules['next_action'] = 'nullable|string|max:255';
         }
 
         if ($this->stage === 'won') {
             $rules['won_category'] = 'required|string';
             $rules['won_reason'] = 'nullable|string';
+            $rules['presales_id'] = 'required|exists:team_members,id';
+            $rules['engineer_ids'] = 'required|array|min:1';
+        } else {
+            $rules['won_category'] = 'nullable|string';
+            $rules['won_reason'] = 'nullable|string';
+            $rules['presales_id'] = 'nullable|exists:team_members,id';
+            $rules['engineer_ids'] = 'array';
         }
+
+        if ($this->stage === 'lost') {
+            $rules['lost_category'] = 'required|string';
+            $rules['lost_reason'] = 'nullable|string';
+        } else {
+            $rules['lost_category'] = 'nullable|string';
+            $rules['lost_reason'] = 'nullable|string';
+        }
+
+        $attributes = [
+            'title' => 'Judul Opty',
+            'customer_id' => 'Customer',
+            'category' => 'Lini Produk',
+            'tcv' => 'TCV',
+            'gp_percentage' => 'GP',
+            'rating' => 'Rating',
+            'stage' => 'Stage',
+            'sales_id' => 'Sales',
+            'presales_id' => 'Presales',
+            'engineer_ids' => 'Tim Engineer',
+            'expected_closing_date' => 'Ekspektasi Closing',
+            'next_action' => 'Next Action',
+            'won_category' => 'Kategori Alasan Menang',
+            'lost_category' => 'Kategori Alasan Drop',
+        ];
 
         // Kalau validasi gagal, lompat otomatis ke tab yang isinya error, biar
         // user gak bingung nyari kenapa tombol Simpan gak ngefek — soalnya field
         // yang salah bisa aja lagi ada di tab yang gak lagi aktif dilihat.
         try {
-            $data = $this->validate($rules);
+            $data = $this->validate($rules, [], $attributes);
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->activeTab = $this->tabForErrors(array_keys($e->errors()));
             throw $e;
@@ -454,6 +514,7 @@ class OpportunityBoard extends Component
         $this->resetForm();
         $this->promptingLostReason = false;
         $this->promptingWonReason = false;
+        $this->missingFieldsNotice = [];
         $this->activeTab = 'info';
         // showModal sengaja gak disentuh — tetep kebuka buat opty berikutnya.
     }
@@ -487,7 +548,7 @@ class OpportunityBoard extends Component
             }
         }
 
-        $opty = Opportunity::findOrFail($id);
+        $opty = Opportunity::with('engineers')->findOrFail($id);
         $opty->stage = $stage;
         $opty->closed_at = in_array($stage, ['won', 'lost'], true) ? now()->toDateString() : null;
         if ($stage !== 'lost') {
@@ -500,13 +561,55 @@ class OpportunityBoard extends Component
         }
         $opty->save();
 
-        // Baru di-drop ke Lost/WON dan belum ada alasannya — langsung buka
-        // modal minta diisi, biar datanya kecatet dari awal buat evaluasi nanti.
-        if ($stage === 'lost' && ! $opty->lost_category) {
-            $this->openEdit($opty->id, promptLostReason: true);
-        } elseif ($stage === 'won' && ! $opty->won_category) {
-            $this->openEdit($opty->id, promptWonReason: true);
+        // Drag & drop motong jalur form, jadi field yang jadi wajib di stage
+        // baru bisa aja masih kosong (misal geser ke Develop tapi belum ada
+        // Next Action). Kalau ketauan ada yang kurang, langsung buka modal
+        // edit-nya biar user melengkapin — bukan warning, tapi guiding.
+        $missing = $this->missingFieldsForStage($opty, $stage);
+        if ($missing) {
+            $this->openEdit($opty->id, missingFields: $missing);
         }
+    }
+
+    /**
+     * Cek field mandatory yang masih kosong buat stage tertentu. Dipakai
+     * bareng sama persist() (via aturan validasi) dan moveStage() (drag & drop
+     * gak lewat form, jadi perlu dicek manual di sini).
+     */
+    private function missingFieldsForStage(Opportunity $opty, string $stage): array
+    {
+        $missing = [];
+
+        if (! $opty->sales_id) {
+            $missing[] = 'sales_id';
+        }
+
+        if (in_array($stage, ['develop', 'won'], true)) {
+            if (! $opty->expected_closing_date) {
+                $missing[] = 'expected_closing_date';
+            }
+            if (! $opty->next_action) {
+                $missing[] = 'next_action';
+            }
+        }
+
+        if ($stage === 'won') {
+            if (! $opty->won_category) {
+                $missing[] = 'won_category';
+            }
+            if (! $opty->presales_id) {
+                $missing[] = 'presales_id';
+            }
+            if ($opty->engineers->isEmpty()) {
+                $missing[] = 'engineer_ids';
+            }
+        }
+
+        if ($stage === 'lost' && ! $opty->lost_category) {
+            $missing[] = 'lost_category';
+        }
+
+        return $missing;
     }
 
     public function closeModal(): void
@@ -514,6 +617,7 @@ class OpportunityBoard extends Component
         $this->showModal = false;
         $this->promptingLostReason = false;
         $this->promptingWonReason = false;
+        $this->missingFieldsNotice = [];
         $this->resetForm();
     }
 

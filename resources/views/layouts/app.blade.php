@@ -175,46 +175,33 @@
         </div>
 
         {{-- Submenu kontekstual: cuma muncul kalau lagi di dalam modul CRM, tampil di ATAS sesuai spek mobile.
-             Grid rata (bukan scroll horizontal) — jumlah kolom nyesuain berapa tab yang keliatan. --}}
+             Grid rata (bukan scroll horizontal) — jumlah kolom nyesuain berapa tab yang keliatan.
+             Tiap tab dikasih warna aksen sendiri (senada sama kartu di Home) biar lebih hidup
+             dan gampang dibedain sekilas — bukan cuma satu warna sky monoton buat semua. --}}
         @if (request()->routeIs('crm.*'))
             @php
-                $subTabs = 0;
-                if (auth()->user()->hasPermission('crm.view')) $subTabs++;
-                if (auth()->user()->hasPermission('report.view')) $subTabs++;
-                if (auth()->user()->hasPermission('customer.view')) $subTabs++;
-                if (auth()->user()->hasPermission('team.view')) $subTabs++;
-                $subTabs = max($subTabs, 1);
+                $subTabConfig = [
+                    'board' => ['route' => 'crm.board', 'active' => request()->routeIs('crm.board'), 'icon' => 'layout-kanban', 'label' => 'Board', 'perm' => 'crm.view', 'on' => 'bg-sky text-navy shadow-sm shadow-sky/30', 'off' => 'text-white/50 bg-white/5 hover:text-sky hover:bg-sky/10'],
+                    'report' => ['route' => 'crm.report', 'active' => request()->routeIs('crm.report') || request()->routeIs('crm.report.*'), 'icon' => 'chart-bar', 'label' => 'Report', 'perm' => 'report.view', 'on' => 'bg-violet text-white shadow-sm shadow-violet/30', 'off' => 'text-white/50 bg-white/5 hover:text-violet hover:bg-violet/10'],
+                    'customer' => ['route' => 'crm.customers', 'active' => request()->routeIs('crm.customers'), 'icon' => 'building-store', 'label' => 'Customer', 'perm' => 'customer.view', 'on' => 'bg-teal text-navy shadow-sm shadow-teal/30', 'off' => 'text-white/50 bg-white/5 hover:text-teal hover:bg-teal/10'],
+                    'team' => ['route' => 'crm.team', 'active' => request()->routeIs('crm.team'), 'icon' => 'users', 'label' => 'Tim', 'perm' => 'team.view', 'on' => 'bg-amber text-navy shadow-sm shadow-amber/30', 'off' => 'text-white/50 bg-white/5 hover:text-amber hover:bg-amber/10'],
+                ];
+                $visibleTabs = collect($subTabConfig)->filter(fn ($t) => auth()->user()->hasPermission($t['perm']));
+                $subTabs = max($visibleTabs->count(), 1);
             @endphp
             <div class="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 pb-2.5">
-                <div class="grid gap-1" style="grid-template-columns: repeat({{ $subTabs }}, minmax(0, 1fr));">
-                    @if (auth()->user()->hasPermission('crm.view'))
-                        <a href="{{ route('crm.board') }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-medium transition text-center {{ request()->routeIs('crm.board') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                            <x-icon name="layout-kanban" class="w-4 h-4 shrink-0" />
-                            <span class="text-[10px] sm:text-sm leading-tight">Board</span>
+                <div class="grid gap-1.5" style="grid-template-columns: repeat({{ $subTabs }}, minmax(0, 1fr));">
+                    @foreach ($visibleTabs as $tab)
+                        <a href="{{ route($tab['route']) }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-semibold transition-all duration-150 text-center {{ $tab['active'] ? $tab['on'] : $tab['off'] }}">
+                            <x-icon name="{{ $tab['icon'] }}" class="w-4 h-4 shrink-0" />
+                            <span class="text-[10px] sm:text-sm leading-tight">{{ $tab['label'] }}</span>
                         </a>
-                    @endif
-                    @if (auth()->user()->hasPermission('report.view'))
-                        <a href="{{ route('crm.report') }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-medium transition text-center {{ request()->routeIs('crm.report') || request()->routeIs('crm.report.*') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                            <x-icon name="chart-bar" class="w-4 h-4 shrink-0" />
-                            <span class="text-[10px] sm:text-sm leading-tight">Report</span>
-                        </a>
-                    @endif
-                    @if (auth()->user()->hasPermission('customer.view'))
-                        <a href="{{ route('crm.customers') }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-medium transition text-center {{ request()->routeIs('crm.customers') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                            <x-icon name="building-store" class="w-4 h-4 shrink-0" />
-                            <span class="text-[10px] sm:text-sm leading-tight">Customer</span>
-                        </a>
-                    @endif
-                    @if (auth()->user()->hasPermission('team.view'))
-                        <a href="{{ route('crm.team') }}" class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 py-1.5 sm:py-1.5 rounded-lg sm:rounded-full font-medium transition text-center {{ request()->routeIs('crm.team') ? 'bg-sky text-navy' : 'text-white/50 bg-white/5 hover:text-white/80' }}">
-                            <x-icon name="users" class="w-4 h-4 shrink-0" />
-                            <span class="text-[10px] sm:text-sm leading-tight">Tim</span>
-                        </a>
-                    @endif
+                    @endforeach
                 </div>
             </div>
         @endif
     </nav>
+
 
     <main class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6">
         {{ $slot }}

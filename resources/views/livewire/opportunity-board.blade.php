@@ -41,10 +41,10 @@
     >
         @php
             $stageColors = [
-                'leads' => ['bar' => 'bg-slate-400', 'text' => 'text-slate-500 dark:text-slate-300', 'bg' => 'bg-slate-50 dark:bg-slate-500/10'],
-                'develop' => ['bar' => 'bg-amber-400', 'text' => 'text-amber-600 dark:text-amber-300', 'bg' => 'bg-amber-50 dark:bg-amber-500/10'],
-                'won' => ['bar' => 'bg-emerald-500', 'text' => 'text-emerald-600 dark:text-emerald-300', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10'],
-                'lost' => ['bar' => 'bg-rose-500', 'text' => 'text-rose-600 dark:text-rose-300', 'bg' => 'bg-rose-50 dark:bg-rose-500/10'],
+                'leads' => ['bar' => 'bg-slate-400', 'text' => 'text-slate-500 dark:text-slate-300', 'bg' => 'bg-slate-50 dark:bg-slate-500/10', 'border' => 'border-slate-200 dark:border-slate-500/30'],
+                'develop' => ['bar' => 'bg-amber-400', 'text' => 'text-amber-600 dark:text-amber-300', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'border' => 'border-amber-200 dark:border-amber-500/30'],
+                'won' => ['bar' => 'bg-emerald-500', 'text' => 'text-emerald-600 dark:text-emerald-300', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10', 'border' => 'border-emerald-200 dark:border-emerald-500/30'],
+                'lost' => ['bar' => 'bg-rose-500', 'text' => 'text-rose-600 dark:text-rose-300', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'border' => 'border-rose-200 dark:border-rose-500/30'],
             ];
         @endphp
         @foreach ($stages as $key => $label)
@@ -53,7 +53,7 @@
                 $sc = $stageColors[$key] ?? $stageColors['leads'];
             @endphp
             <div
-                class="{{ $sc['bg'] }} border-2 border-transparent rounded-2xl p-3 min-h-[140px] shrink-0 w-[82vw] sm:w-[60vw] md:w-auto snap-start relative overflow-hidden"
+                class="{{ $sc['bg'] }} border-2 {{ $sc['border'] }} rounded-2xl p-3 min-h-[140px] shrink-0 w-[82vw] sm:w-[60vw] md:w-auto snap-start relative overflow-hidden"
                 x-on:dragover.prevent="$el.classList.add('ring-2','ring-sky-400')"
                 x-on:dragleave="$el.classList.remove('ring-2','ring-sky-400')"
                 x-on:drop.prevent="
@@ -81,7 +81,7 @@
                      bawah) begitu isinya banyak — kombinasi sama sorting prioritas di
                      atas (rating tinggi & closing paling deket duluan), jadi kolom
                      penuh tetep kelola-able tanpa perlu warning apa-apa. --}}
-                <div class="max-h-[62vh] md:max-h-[65vh] overflow-y-auto flex flex-col gap-2 divide-y divide-dashed divide-gray-300/70 dark:divide-gray-600/50 pr-0.5 -mr-0.5">
+                <div class="max-h-[62vh] md:max-h-[65vh] overflow-y-auto flex flex-col gap-2.5 divide-y-2 divide-gray-300 dark:divide-gray-600 pr-0.5 -mr-0.5">
                 @forelse ($items as $opty)
                     @php
                         $cardEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads');
@@ -240,8 +240,12 @@
             </div>
         @endif
 
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-x-auto">
-            <table class="w-full text-sm min-w-[480px]">
+        {{-- Tabel penuh cuma ditampilin di tablet/desktop (md+) — di layar sempit,
+             4 kolom tabel gak muat tanpa scroll horizontal yang kurang enak dipakai
+             (nama opty/customer kepotong). Solusinya di HP: card list bertumpuk,
+             semua info kebaca penuh tanpa geser ke samping. --}}
+        <div class="hidden md:block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-x-auto">
+            <table class="w-full text-sm">
                 <thead>
                     <tr class="text-left text-xs text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
                         <th class="p-3 cursor-pointer select-none" wire:click="sortList('title')">
@@ -293,6 +297,43 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+
+        {{-- Card list — versi mobile, gantiin tabel biar gak ada scroll horizontal.
+             Sort tetep jalan lewat tombol/filter yang sama, cuma tampilannya beda. --}}
+        <div class="md:hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl divide-y-2 divide-gray-100 dark:divide-gray-700 overflow-hidden">
+            @forelse ($listItems as $opty)
+                @php $rowEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads'); @endphp
+                <div
+                    wire:key="list-opty-mobile-{{ $opty->id }}"
+                    @if ($rowEditable) wire:click="openEdit({{ $opty->id }})" @endif
+                    @class([
+                        'p-3.5 transition',
+                        'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60' => $rowEditable,
+                    ])
+                >
+                    <div class="flex items-start justify-between gap-2 mb-1.5">
+                        <div class="font-medium text-sm leading-snug flex items-start gap-1.5 min-w-0">
+                            @if ($opty->is_overdue)
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" title="Closing kelewat"></span>
+                            @endif
+                            <span class="truncate">{{ $opty->title }}</span>
+                        </div>
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky/10 text-sky shrink-0">{{ $opty->stage_label }}</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $opty->customer?->name ?? $opty->customer_name }}</span>
+                        <span @class([
+                            'text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0',
+                            'bg-red-50 dark:bg-red-500/10 text-red-600' => $opty->rating === 'high',
+                            'bg-amber-50 dark:bg-amber/10 text-amber-600' => $opty->rating === 'med',
+                            'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $opty->rating === 'low',
+                        ])>{{ $opty->rating_label }}</span>
+                    </div>
+                </div>
+            @empty
+                <div class="p-8 text-center text-xs text-gray-400 dark:text-gray-500">Belum ada opty untuk filter ini</div>
+            @endforelse
         </div>
 
         {{-- Total TCV — ngikutin filter/search yang lagi aktif, dihitung dari
@@ -358,6 +399,13 @@
                         @if ($catatanHasError)<span class="absolute top-1.5 right-0 w-1.5 h-1.5 rounded-full bg-rose-500"></span>@endif
                     </button>
                 </div>
+
+                @if (count($missingFieldsNotice))
+                    <div class="mx-4 sm:mx-6 mt-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300 shrink-0">
+                        <span class="font-semibold">Lengkapi dulu sebelum lanjut:</span>
+                        {{ collect($missingFieldsNotice)->map(fn ($f) => $missingFieldsLabels[$f] ?? $f)->implode(', ') }}
+                    </div>
+                @endif
 
                 <form wire:submit="save" class="flex flex-col overflow-hidden flex-1">
                     <div class="overflow-y-auto px-4 sm:px-6 py-4 space-y-4 flex-1">
@@ -481,8 +529,12 @@
                                     @endif
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Ekspektasi Closing</label>
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
+                                        Ekspektasi Closing
+                                        @if (in_array($stage, ['develop', 'won'], true))<span class="text-rose-500">*</span>@endif
+                                    </label>
                                     <input type="date" wire:model="expected_closing_date" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                    @error('expected_closing_date') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 </div>
                             </div>
 
@@ -531,28 +583,38 @@
                         <div x-show="tab === 'tim'" x-cloak>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                                 <div>
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Sales (assigned)</label>
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Sales (assigned) <span class="text-rose-500">*</span></label>
                                     <select wire:model="sales_id" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                                         <option value="">— pilih sales —</option>
                                         @foreach ($salesOptions as $s)
                                             <option value="{{ $s->id }}">{{ $s->name }}</option>
                                         @endforeach
                                     </select>
+                                    @error('sales_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Presales / Tim Produk</label>
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
+                                        Presales / Tim Produk
+                                        @if ($stage === 'won')<span class="text-rose-500">*</span>@endif
+                                    </label>
                                     <select wire:model="presales_id" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                                         <option value="">— pilih presales —</option>
                                         @foreach ($presalesOptions as $p)
                                             <option value="{{ $p->id }}">{{ $p->name }}</option>
                                         @endforeach
                                     </select>
+                                    @error('presales_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 </div>
                             </div>
 
                             <div>
                                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">
-                                    Estimasi Tim Engineer <span class="font-normal text-gray-400">(isi kalau udah Close WIN)</span>
+                                    Estimasi Tim Engineer
+                                    @if ($stage === 'won')
+                                        <span class="text-rose-500">* wajib diisi minimal 1</span>
+                                    @else
+                                        <span class="font-normal text-gray-400">(isi kalau udah Close WIN)</span>
+                                    @endif
                                 </label>
                                 <div class="grid grid-cols-2 gap-2">
                                     @forelse ($engineerOptions as $e)
@@ -564,14 +626,19 @@
                                         <div class="col-span-2 text-xs text-gray-400 dark:text-gray-500 py-2">Belum ada data engineer aktif.</div>
                                     @endforelse
                                 </div>
+                                @error('engineer_ids') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
 
                         {{-- ===== TAB: Catatan ===== --}}
                         <div x-show="tab === 'catatan'" x-cloak>
                             <div class="mb-4">
-                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Next Action</label>
+                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
+                                    Next Action
+                                    @if (in_array($stage, ['develop', 'won'], true))<span class="text-rose-500">*</span>@endif
+                                </label>
                                 <input type="text" wire:model="next_action" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                @error('next_action') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Catatan</label>
