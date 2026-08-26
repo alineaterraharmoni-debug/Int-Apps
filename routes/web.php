@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DocumentPdfController;
+use App\Http\Controllers\OpportunityExportController;
 use App\Http\Controllers\ReportPdfController;
 use App\Livewire\AccountManagement;
 use App\Livewire\ChangePassword;
@@ -30,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('crm')->name('crm.')->group(function () {
         Route::middleware('permission:crm.view')->group(function () {
             Route::get('/board', OpportunityBoard::class)->name('board');
+            Route::get('/board/export', [OpportunityExportController::class, 'export'])->name('board.export');
         });
         Route::middleware('permission:report.view')->group(function () {
             Route::get('/report', ReportDashboard::class)->name('report');

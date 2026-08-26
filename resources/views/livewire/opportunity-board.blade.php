@@ -70,6 +70,11 @@
                     </span>
                 </div>
 
+                {{-- Kartu di-scroll internal per kolom (bukan kolomnya yang manjang ke
+                     bawah) begitu isinya banyak — kombinasi sama sorting prioritas di
+                     atas (rating tinggi & closing paling deket duluan), jadi kolom
+                     penuh tetep kelola-able tanpa perlu warning apa-apa. --}}
+                <div class="max-h-[62vh] md:max-h-[65vh] overflow-y-auto flex flex-col gap-2 divide-y divide-dashed divide-gray-300/70 dark:divide-gray-600/50 pr-0.5 -mr-0.5">
                 @forelse ($items as $opty)
                     @php
                         $cardEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads');
@@ -81,7 +86,7 @@
                         @if ($cardEditable) wire:click="openEdit({{ $opty->id }})" @endif
                         wire:key="opty-{{ $opty->id }}"
                         @class([
-                            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 mb-2 transition',
+                            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 transition',
                             'cursor-pointer hover:shadow-md' => $cardEditable,
                             'opacity-80' => ! $cardEditable,
                         ])
@@ -119,6 +124,7 @@
                 @empty
                     <div class="text-center text-xs text-gray-400 dark:text-gray-500 py-6">Belum ada opty</div>
                 @endforelse
+                </div>
             </div>
         @endforeach
     </div>
@@ -151,6 +157,17 @@
                     <option value="100">100</option>
                 </select>
             </div>
+        </div>
+
+        <div class="flex justify-end mb-3">
+            <a href="{{ route('crm.board.export', ['stage' => $listFilterStage, 'rating' => $listFilterRating]) }}"
+               class="inline-flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                <x-icon name="download" class="w-4 h-4" />
+                Export ke Excel
+                @if ($listFilterStage || $listFilterRating)
+                    <span class="text-[10px] font-mono text-gray-400 dark:text-gray-500">(sesuai filter)</span>
+                @endif
+            </a>
         </div>
 
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-x-auto">
@@ -193,6 +210,19 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+
+        {{-- Total TCV — ngikutin filter Stage/Rating yang lagi aktif, dihitung
+             dari SEMUA opty yang match (bukan cuma yang kelihatan di halaman
+             ini), jadi tetep akurat walau lagi di-paginate. --}}
+        <div class="flex items-center justify-between bg-ink dark:bg-gray-900 text-white rounded-2xl px-4 py-3 mt-3">
+            <span class="text-xs font-medium text-white/60">
+                Total TCV
+                @if ($listFilterStage || $listFilterRating)
+                    <span class="text-white/40">(sesuai filter)</span>
+                @endif
+            </span>
+            <span class="font-display font-bold text-sm md:text-base">Rp {{ number_format($listTotalTcv, 0, ',', '.') }}</span>
         </div>
 
         <div class="flex items-center justify-between mt-3 flex-wrap gap-2">

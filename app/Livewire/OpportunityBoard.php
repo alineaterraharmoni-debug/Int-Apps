@@ -102,16 +102,33 @@ class OpportunityBoard extends Component
 
     public function render()
     {
+        // Urutan prioritas kartu di tiap kolom board: Rating High duluan,
+        // habis itu yang closing date-nya paling deket. Ini gantiin "warning
+        // kolom penuh" — daripada nakut-nakutin user, opty yang paling
+        // penting otomatis muncul duluan di atas walau kolomnya lagi rame.
+        $ratingOrder = ['high' => 0, 'med' => 1, 'low' => 2];
+
         $opportunities = Opportunity::with(['customer', 'sales', 'presales', 'engineers'])
             ->orderByDesc('updated_at')
             ->get()
+            ->sortBy(fn ($o) => $o->expected_closing_date?->timestamp ?? PHP_INT_MAX)
+            ->sortBy(fn ($o) => $ratingOrder[$o->rating] ?? 99)
+            ->values()
             ->groupBy('stage');
 
-        $listItems = Opportunity::with(['customer'])
+        // Filter dipusatkan di satu closure biar query list & query total TCV
+        // selalu konsisten — kalau nanti nambah filter baru, cukup edit di sini aja.
+        $applyListFilters = fn ($query) => $query
             ->when($this->listFilterStage, fn ($q, $v) => $q->where('stage', $v))
-            ->when($this->listFilterRating, fn ($q, $v) => $q->where('rating', $v))
+            ->when($this->listFilterRating, fn ($q, $v) => $q->where('rating', $v));
+
+        $listItems = $applyListFilters(Opportunity::with(['customer']))
             ->orderByDesc('updated_at')
             ->paginate($this->listPerPage);
+
+        // Total TCV dari SEMUA opty yang match filter (bukan cuma yang lagi
+        // kelihatan di halaman ini) — biar tetep akurat walau di-paginate.
+        $listTotalTcv = $applyListFilters(Opportunity::query())->sum('tcv');
 
         $canCreateOrEdit = $this->canManageFull() || $this->canManageMqlOnly();
 
@@ -124,6 +141,7 @@ class OpportunityBoard extends Component
             'lostCategories' => Opportunity::LOST_CATEGORIES,
             'grouped' => $opportunities,
             'listItems' => $listItems,
+            'listTotalTcv' => $listTotalTcv,
             'customerOptions' => Customer::orderBy('name')->get(),
             'salesOptions' => TeamMember::active()->withRole('sales')->get(),
             'presalesOptions' => TeamMember::active()->withRole('presales')->get(),
