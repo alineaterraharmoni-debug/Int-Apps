@@ -108,36 +108,64 @@
                     </span>
                 </div>
 
-                {{-- User chip + logout — selalu keliatan, mobile & desktop --}}
+                {{-- User chip → dropdown. Sebelumnya avatar + shield + key + moon + logout
+                     numpuk semua dalam satu baris sempit (rawan salah tap di HP).
+                     Sekarang cuma avatar yang keliatan, aksi lain masuk dropdown
+                     dengan target tap yang lebih lega. --}}
                 @auth
-                    <div class="flex items-center gap-2.5 pl-3 border-l border-white/10">
-                        <div class="w-7 h-7 rounded-full bg-sky/20 text-sky flex items-center justify-center text-[11px] font-display font-bold shrink-0">
-                            {{ collect(explode(' ', auth()->user()->name))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('') }}
-                        </div>
-                        <span class="hidden md:inline text-xs text-white/60 max-w-[110px] truncate">{{ auth()->user()->name }}</span>
-
-                        @if (auth()->user()->is_admin)
-                            <a href="{{ route('accounts') }}" class="text-white/40 hover:text-white/80 transition" title="Kelola Akun (Super Admin)">
-                                <x-icon name="shield" class="w-[18px] h-[18px]" />
-                            </a>
-                        @elseif (auth()->user()->hasPermission('accounts.create'))
-                            <a href="{{ route('account.create') }}" class="text-white/40 hover:text-white/80 transition" title="Tambah Akun Baru">
-                                <x-icon name="shield" class="w-[18px] h-[18px]" />
-                            </a>
-                        @endif
-                        <a href="{{ route('account.password') }}" class="text-white/40 hover:text-white/80 transition" title="Ganti Password">
-                            <x-icon name="key" class="w-[18px] h-[18px]" />
-                        </a>
-                        <button id="themeToggle" type="button" class="text-white/40 hover:text-white/80 transition" title="Ganti tampilan gelap/terang">
-                            <x-icon name="moon" class="w-[18px] h-[18px] theme-icon-dark" />
-                            <x-icon name="sun" class="w-[18px] h-[18px] theme-icon-light hidden" />
+                    <div class="relative pl-3 border-l border-white/10" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
+                        <button type="button" @click="open = !open" class="flex items-center gap-2 -m-1.5 p-1.5 rounded-full hover:bg-white/5 transition" :aria-expanded="open" aria-haspopup="true">
+                            <div class="w-8 h-8 rounded-full bg-sky/20 text-sky flex items-center justify-center text-[11px] font-display font-bold shrink-0">
+                                {{ collect(explode(' ', auth()->user()->name))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('') }}
+                            </div>
+                            <span class="hidden md:inline text-xs text-white/60 max-w-[110px] truncate">{{ auth()->user()->name }}</span>
+                            <x-icon name="chevron-down" class="hidden md:block w-3.5 h-3.5 text-white/40 shrink-0 transition-transform" x-bind:class="open ? 'rotate-180' : ''" />
                         </button>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="text-white/40 hover:text-white/80 transition" title="Keluar">
-                                <x-icon name="logout" class="w-[18px] h-[18px]" />
+
+                        <div x-show="open"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl py-1.5 z-50"
+                             style="display: none;">
+                            <div class="px-3.5 py-2 border-b border-gray-100 dark:border-gray-700">
+                                <div class="text-sm font-display font-bold text-ink dark:text-white truncate">{{ auth()->user()->name }}</div>
+                                <div class="text-[11px] text-gray-400 truncate">{{ auth()->user()->email }}</div>
+                            </div>
+
+                            @if (auth()->user()->is_admin)
+                                <a href="{{ route('accounts') }}" class="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition">
+                                    <x-icon name="shield" class="w-4 h-4 text-gray-400 shrink-0" /> Kelola Akun
+                                </a>
+                            @elseif (auth()->user()->hasPermission('accounts.create'))
+                                <a href="{{ route('account.create') }}" class="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition">
+                                    <x-icon name="shield" class="w-4 h-4 text-gray-400 shrink-0" /> Tambah Akun Baru
+                                </a>
+                            @endif
+
+                            <a href="{{ route('account.password') }}" class="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition">
+                                <x-icon name="key" class="w-4 h-4 text-gray-400 shrink-0" /> Ganti Password
+                            </a>
+
+                            <button id="themeToggle" type="button" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition text-left">
+                                <x-icon name="moon" class="w-4 h-4 text-gray-400 shrink-0 theme-icon-dark" />
+                                <x-icon name="sun" class="w-4 h-4 text-gray-400 shrink-0 theme-icon-light hidden" />
+                                <span class="theme-icon-dark">Mode Gelap</span>
+                                <span class="theme-icon-light hidden">Mode Terang</span>
                             </button>
-                        </form>
+
+                            <div class="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition text-left">
+                                        <x-icon name="logout" class="w-4 h-4 shrink-0" /> Keluar
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 @endauth
             </div>

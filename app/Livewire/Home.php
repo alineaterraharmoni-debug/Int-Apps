@@ -16,6 +16,7 @@ class Home extends Component
         $canReport = $user->hasPermission('report.view');
         $canDocument = $user->hasPermission('document.view');
 
+        // Modul yang beneran ada (dibedain dari "coming soon" yang emang belum dibangun).
         $modules = [
             [
                 'key' => 'crm',
@@ -28,16 +29,6 @@ class Home extends Component
                 'stat' => $canCrm
                     ? Opportunity::whereNotIn('stage', ['won', 'lost'])->count().' opty aktif'
                     : 'Gak ada akses',
-            ],
-            [
-                'key' => 'project',
-                'name' => 'Project & Tiket',
-                'desc' => 'Lisensi, maintenance, tiket',
-                'icon' => 'briefcase',
-                'route' => null,
-                'available' => false,
-                'color' => 'teal',
-                'stat' => 'Segera hadir',
             ],
             [
                 'key' => 'document',
@@ -61,6 +52,44 @@ class Home extends Component
             ],
         ];
 
-        return view('livewire.home', ['modules' => $modules]);
+        // Modul yang belum dibangun — dipisah biar gak numpang makan slot grid
+        // yang sama gedenya kayak modul yang beneran jalan.
+        $comingSoon = [
+            [
+                'key' => 'project',
+                'name' => 'Project & Tiket',
+                'desc' => 'Lisensi, maintenance, tiket',
+                'icon' => 'briefcase',
+            ],
+        ];
+
+        // Insight singkat buat hero: opty yang closing-nya minggu ini.
+        $closingSoonCount = $canCrm
+            ? Opportunity::whereNotIn('stage', ['won', 'lost'])
+                ->whereNotNull('expected_closing_date')
+                ->whereBetween('expected_closing_date', [now()->toDateString(), now()->addDays(7)->toDateString()])
+                ->count()
+            : 0;
+
+        // Quick action di hero — satu aksi paling relevan sesuai role, biar
+        // gak perlu masuk modul dulu buat kerjaan paling sering dilakuin.
+        $canManageOpty = $user->hasPermission('crm.manage') || $user->hasPermission('crm.manage_mql_only');
+        $canManageDocument = $user->hasPermission('document.manage');
+
+        $quickAction = null;
+        if ($canManageOpty) {
+            $quickAction = ['label' => 'Opty Baru', 'url' => route('crm.board', ['new' => 1])];
+        } elseif ($canManageDocument) {
+            $quickAction = ['label' => 'Dokumen Baru', 'url' => route('documents.create', ['type' => 'quotation'])];
+        }
+
+        return view('livewire.home', [
+            'modules' => $modules,
+            'comingSoon' => $comingSoon,
+            'firstName' => explode(' ', $user->name)[0],
+            'closingSoonCount' => $closingSoonCount,
+            'canCrm' => $canCrm,
+            'quickAction' => $quickAction,
+        ]);
     }
 }

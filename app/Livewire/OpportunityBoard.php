@@ -72,6 +72,19 @@ class OpportunityBoard extends Component
     #[Validate('nullable|string')]
     public ?string $notes = null;
 
+    /**
+     * Support quick action dari Home: link "+ Opty Baru" (?new=1) langsung
+     * buka modal create, tanpa perlu 2 tap (masuk modul dulu baru klik tambah).
+     * Guard permission di sini juga (bukan cuma di route), biar user yang
+     * cuma view-only gak ke-abort 403 pas mount — query string-nya dicuekin aja.
+     */
+    public function mount(): void
+    {
+        if (request()->boolean('new') && ($this->canManageFull() || $this->canManageMqlOnly())) {
+            $this->openCreate();
+        }
+    }
+
     public function updatingListPerPage(): void
     {
         $this->resetPage();
