@@ -71,17 +71,12 @@
                             @endforelse
                         </td>
                         <td class="p-3 text-gray-500 dark:text-gray-400">
-                            @php
-                                $phoneCount = count($v->phones ?? []);
-                                $emailCount = count($v->emails ?? []);
-                            @endphp
-                            @if ($v->contact_name || $phoneCount || $emailCount)
-                                <div>{{ $v->contact_name ?: '—' }}</div>
-                                @if ($phoneCount)
-                                    <div class="text-xs">{{ $v->phones[0] }}{{ $phoneCount > 1 ? ' (+'.($phoneCount - 1).' lagi)' : '' }}</div>
-                                @endif
-                                @if ($emailCount)
-                                    <div class="text-xs">{{ $v->emails[0] }}{{ $emailCount > 1 ? ' (+'.($emailCount - 1).' lagi)' : '' }}</div>
+                            @php $contactCount = count($v->contacts ?? []); @endphp
+                            @if ($contactCount)
+                                @php $first = $v->contacts[0]; @endphp
+                                <div>{{ $first['name'] ?? '—' }}{{ ! empty($first['brand']) ? ' ('.$first['brand'].')' : '' }}</div>
+                                @if ($contactCount > 1)
+                                    <div class="text-xs">+{{ $contactCount - 1 }} kontak lagi</div>
                                 @endif
                             @else
                                 —
@@ -116,18 +111,14 @@
                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-1.5 line-clamp-2">{{ $v->product_detail }}</div>
                 @endif
                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    @php
-                        $phoneCount = count($v->phones ?? []);
-                        $emailCount = count($v->emails ?? []);
-                    @endphp
-                    @if ($v->contact_name)
-                        <div>{{ $v->contact_name }}</div>
-                    @endif
-                    @if ($phoneCount)
-                        <div>{{ $v->phones[0] }}{{ $phoneCount > 1 ? ' (+'.($phoneCount - 1).' lagi)' : '' }}</div>
-                    @endif
-                    @if ($emailCount)
-                        <div>{{ $v->emails[0] }}{{ $emailCount > 1 ? ' (+'.($emailCount - 1).' lagi)' : '' }}</div>
+                    @php $contactCount = count($v->contacts ?? []); @endphp
+                    @if ($contactCount)
+                        @foreach (array_slice($v->contacts, 0, 2) as $c)
+                            <div>{{ $c['name'] ?? '—' }}{{ ! empty($c['brand']) ? ' ('.$c['brand'].')' : '' }}</div>
+                        @endforeach
+                        @if ($contactCount > 2)
+                            <div>+{{ $contactCount - 2 }} kontak lagi</div>
+                        @endif
                     @endif
                 </div>
                 @if ($canManage)
@@ -179,43 +170,47 @@
                         <textarea wire:model="product_detail" rows="3" placeholder="cth. Firewall Fortinet, Endpoint Security TrendAI, Kaspersky EDR" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>
                     </div>
 
+                    {{-- Kontak terstruktur — satu vendor bisa punya beberapa PIC, tiap
+                         orang pegang brand/produk beda (misal Mona pegang Fortinet,
+                         Sinta pegang Kaspersky). Semuanya opsional. --}}
                     <div>
-                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Nama Kontak</label>
-                        <input type="text" wire:model="contact_name" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                    </div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Kontak PIC</label>
+                            <button type="button" wire:click="addContact" class="text-[11px] font-semibold text-sky">+ Tambah Kontak</button>
+                        </div>
 
-                    {{-- No. Telepon — bisa lebih dari 1, semuanya opsional --}}
-                    <div>
-                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">No. Telepon</label>
-                        <div class="space-y-1.5">
-                            @foreach ($phones as $i => $ph)
-                                <div class="flex gap-1.5">
-                                    <input type="text" wire:model="phones.{{ $i }}" placeholder="08xx atau (021) xxx" class="flex-1 min-w-0 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                                    <button type="button" wire:click="removePhone({{ $i }})" class="shrink-0 text-gray-400 dark:text-gray-500 hover:text-rose-500 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5">
-                                        <x-icon name="x" class="w-3.5 h-3.5" />
+                        @if (empty($contacts))
+                            <p class="text-xs text-gray-400 dark:text-gray-500">Belum ada kontak ditambahin.</p>
+                        @endif
+
+                        <div class="space-y-3">
+                            @foreach ($contacts as $i => $contact)
+                                <div class="relative border border-gray-200 dark:border-gray-700 rounded-xl p-3">
+                                    <button type="button" wire:click="removeContact({{ $i }})" class="absolute top-2 right-2 text-gray-400 dark:text-gray-500 hover:text-rose-500">
+                                        <x-icon name="x" class="w-4 h-4" />
                                     </button>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pr-7">
+                                        <div>
+                                            <label class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mb-0.5">Nama</label>
+                                            <input type="text" wire:model="contacts.{{ $i }}.name" placeholder="cth. Mona" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mb-0.5">Brand/Produk yang Di-handle</label>
+                                            <input type="text" wire:model="contacts.{{ $i }}.brand" placeholder="cth. Fortinet" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mb-0.5">No. Telepon</label>
+                                            <input type="text" wire:model="contacts.{{ $i }}.phone" placeholder="08xx" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mb-0.5">Email</label>
+                                            <input type="email" wire:model="contacts.{{ $i }}.email" placeholder="nama@vendor.com" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                                        </div>
+                                    </div>
+                                    @error('contacts.'.$i.'.email') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                                 </div>
-                                @error('phones.'.$i) <p class="text-xs text-red-500">{{ $message }}</p> @enderror
                             @endforeach
                         </div>
-                        <button type="button" wire:click="addPhone" class="text-[11px] font-semibold text-sky mt-1.5">+ Tambah No. Telepon</button>
-                    </div>
-
-                    {{-- Email — bisa lebih dari 1, semuanya opsional --}}
-                    <div>
-                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Email</label>
-                        <div class="space-y-1.5">
-                            @foreach ($emails as $i => $em)
-                                <div class="flex gap-1.5">
-                                    <input type="email" wire:model="emails.{{ $i }}" placeholder="nama@vendor.com" class="flex-1 min-w-0 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                                    <button type="button" wire:click="removeEmail({{ $i }})" class="shrink-0 text-gray-400 dark:text-gray-500 hover:text-rose-500 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5">
-                                        <x-icon name="x" class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                                @error('emails.'.$i) <p class="text-xs text-red-500">{{ $message }}</p> @enderror
-                            @endforeach
-                        </div>
-                        <button type="button" wire:click="addEmail" class="text-[11px] font-semibold text-sky mt-1.5">+ Tambah Email</button>
                     </div>
 
                     <div>

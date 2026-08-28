@@ -28,12 +28,10 @@ class VendorManagement extends Component
     public array $type = [];
 
     public ?string $product_detail = null;
-    public ?string $contact_name = null;
 
-    // Array — satu vendor bisa punya lebih dari 1 no. telepon / email.
-    // Semuanya opsional, boleh kosong sama sekali.
-    public array $phones = [];
-    public array $emails = [];
+    // Array of ['name'=>..., 'brand'=>..., 'phone'=>..., 'email'=>...] — satu
+    // vendor bisa punya beberapa PIC, tiap orang pegang brand/produk beda.
+    public array $contacts = [];
 
     public ?string $address = null;
 
@@ -53,26 +51,15 @@ class VendorManagement extends Component
         $this->resetPage();
     }
 
-    public function addPhone(): void
+    public function addContact(): void
     {
-        $this->phones[] = '';
+        $this->contacts[] = ['name' => '', 'brand' => '', 'phone' => '', 'email' => ''];
     }
 
-    public function removePhone(int $index): void
+    public function removeContact(int $index): void
     {
-        unset($this->phones[$index]);
-        $this->phones = array_values($this->phones);
-    }
-
-    public function addEmail(): void
-    {
-        $this->emails[] = '';
-    }
-
-    public function removeEmail(int $index): void
-    {
-        unset($this->emails[$index]);
-        $this->emails = array_values($this->emails);
+        unset($this->contacts[$index]);
+        $this->contacts = array_values($this->contacts);
     }
 
     private function canManage(): bool
@@ -116,9 +103,7 @@ class VendorManagement extends Component
         $this->name = $v->name;
         $this->type = $v->type ?? [];
         $this->product_detail = $v->product_detail;
-        $this->contact_name = $v->contact_name;
-        $this->phones = $v->phones ?? [];
-        $this->emails = $v->emails ?? [];
+        $this->contacts = $v->contacts ?? [];
         $this->address = $v->address;
         $this->showModal = true;
     }
@@ -129,27 +114,32 @@ class VendorManagement extends Component
             abort(403, 'Akun lo gak punya izin nyimpen data vendor.');
         }
 
-        // Semua field kontak (Lini Produk, Detail Produk, telepon, email,
-        // alamat) SENGAJA gak ada yang wajib — cuma Nama Vendor yang wajib.
+        // Semua field kontak (Lini Produk, Detail Produk, kontak, alamat)
+        // SENGAJA gak ada yang wajib — cuma Nama Vendor yang wajib.
         $data = $this->validate([
             'name' => 'required|string|max:150',
             'type' => 'array',
             'product_detail' => 'nullable|string',
-            'contact_name' => 'nullable|string|max:100',
-            'phones' => 'array',
-            'phones.*' => 'nullable|string|max:50',
-            'emails' => 'array',
-            'emails.*' => 'nullable|email|max:150',
+            'contacts' => 'array',
+            'contacts.*.name' => 'nullable|string|max:100',
+            'contacts.*.brand' => 'nullable|string|max:100',
+            'contacts.*.phone' => 'nullable|string|max:50',
+            'contacts.*.email' => 'nullable|email|max:150',
             'address' => 'nullable|string',
         ], [], [
             'name' => 'Nama Vendor',
             'type' => 'Lini Produk',
-            'emails.*' => 'Email',
+            'contacts.*.email' => 'Email',
         ]);
 
-        // Buang baris kosong (misal user klik "+ Tambah" tapi gak diisi) sebelum disimpen.
-        $data['phones'] = array_values(array_filter($this->phones, fn ($p) => trim((string) $p) !== ''));
-        $data['emails'] = array_values(array_filter($this->emails, fn ($e) => trim((string) $e) !== ''));
+        // Buang baris kontak yang kosong semua (nama, brand, telepon, email
+        // gak diisi sama sekali) sebelum disimpen.
+        $data['contacts'] = array_values(array_filter($this->contacts, function ($c) {
+            return trim((string) ($c['name'] ?? '')) !== ''
+                || trim((string) ($c['brand'] ?? '')) !== ''
+                || trim((string) ($c['phone'] ?? '')) !== ''
+                || trim((string) ($c['email'] ?? '')) !== '';
+        }));
 
         if ($this->editingId) {
             Vendor::findOrFail($this->editingId)->update($data);
@@ -182,7 +172,7 @@ class VendorManagement extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editingId', 'name', 'type', 'product_detail', 'contact_name', 'phones', 'emails', 'address']);
+        $this->reset(['editingId', 'name', 'type', 'product_detail', 'contacts', 'address']);
         $this->resetErrorBag();
     }
 }

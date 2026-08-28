@@ -6,12 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Vendor extends Model
 {
-    protected $fillable = ['name', 'type', 'product_detail', 'contact_name', 'phones', 'emails', 'address'];
+    protected $fillable = ['name', 'type', 'product_detail', 'contacts', 'address'];
 
     protected $casts = [
         'type' => 'array',
-        'phones' => 'array',
-        'emails' => 'array',
+        'contacts' => 'array',
     ];
 
     // Label lini produk yang vendor ini kuasain, dipisah koma — dipake di
