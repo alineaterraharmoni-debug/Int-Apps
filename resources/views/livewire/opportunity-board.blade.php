@@ -361,7 +361,7 @@
 
     @if ($showModal)
         @php
-            $infoHasError = $errors->hasAny(['title', 'customer_id', 'new_customer_name', 'category', 'tcv', 'gp_percentage', 'rating']);
+            $infoHasError = $errors->hasAny(['title', 'customer_id', 'new_customer_name', 'new_customer_address', 'category', 'tcv', 'gp_percentage', 'rating']);
             $stageHasError = $errors->hasAny(['stage', 'expected_closing_date', 'lost_category', 'lost_reason', 'won_category', 'won_reason']);
             $timHasError = $errors->hasAny(['sales_id', 'presales_id', 'engineer_ids']);
             $catatanHasError = $errors->hasAny(['next_action', 'notes']);
@@ -452,14 +452,18 @@
                                             + Customer baru
                                         </button>
                                     @else
-                                        <div class="flex gap-1.5">
-                                            <input type="text" wire:model="new_customer_name" placeholder="Nama customer baru" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                                            <button type="button" wire:click="quickAddCustomer" class="text-xs font-semibold px-3 rounded-lg bg-ink text-white whitespace-nowrap">Simpan</button>
+                                        <div class="space-y-1.5">
+                                            <input type="text" wire:model="new_customer_name" placeholder="Nama customer baru *" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                            @error('new_customer_name') <p class="text-xs text-red-500">{{ $message }}</p> @enderror
+                                            <textarea wire:model="new_customer_address" rows="2" placeholder="Alamat customer baru *" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>
+                                            @error('new_customer_address') <p class="text-xs text-red-500">{{ $message }}</p> @enderror
+                                            <div class="flex gap-1.5">
+                                                <button type="button" wire:click="quickAddCustomer" class="flex-1 text-xs font-semibold px-3 py-2 rounded-lg bg-ink text-white">Simpan Customer</button>
+                                                <button type="button" wire:click="$set('showQuickAddCustomer', false)" class="text-xs font-semibold px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 whitespace-nowrap">Batal</button>
+                                            </div>
                                         </div>
-                                        <button type="button" wire:click="$set('showQuickAddCustomer', false)" class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Batal</button>
                                     @endif
                                     @error('customer_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                                    @error('new_customer_name') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Lini Produk</label>

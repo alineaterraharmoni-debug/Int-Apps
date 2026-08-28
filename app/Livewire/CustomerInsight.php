@@ -6,15 +6,19 @@ use App\Models\Customer;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 class CustomerInsight extends Component
 {
+    use WithPagination;
+
     public string $search = '';
     public ?string $date_from = null;
     public ?string $date_to = null;
     public string $sortBy = 'total_won'; // total_won | total_tcv | opty_count | name
     public bool $focusOnly = false;
+    public bool $showFilters = false;
 
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -29,10 +33,49 @@ class CustomerInsight extends Component
     public ?string $pic_phone = null;
     #[Validate('nullable|email|max:150')]
     public ?string $pic_email = null;
-    #[Validate('nullable|string')]
+    // Sebelumnya nullable — sekarang wajib, biar data alamat customer selalu
+    // ada dari awal (dibutuhin misalnya buat pengiriman dokumen/kunjungan).
+    #[Validate('required|string')]
     public ?string $address = null;
     #[Validate('nullable|string')]
     public ?string $notes = null;
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingDateFrom(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingDateTo(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSortBy(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFocusOnly(): void
+    {
+        $this->resetPage();
+    }
+
+    public function resetListFilters(): void
+    {
+        $this->reset(['date_from', 'date_to', 'focusOnly']);
+        $this->sortBy = 'total_won';
+        $this->resetPage();
+    }
+
+    private function canManage(): bool
+    {
+        return auth()->user()->hasPermission('customer.manage');
+    }
 
     public function render()
     {
@@ -62,24 +105,37 @@ class CustomerInsight extends Component
         };
 
         return view('livewire.customer-insight', [
-            'customers' => $customers->get(),
+            'customers' => $customers->paginate(25),
+            'canManage' => $this->canManage(),
         ]);
     }
 
     public function toggleFocus(int $id): void
     {
+        if (! $this->canManage()) {
+            abort(403, 'Akun lo cuma bisa lihat data customer, gak bisa ubah status Fokus.');
+        }
+
         $customer = Customer::findOrFail($id);
         $customer->update(['is_focus' => ! $customer->is_focus]);
     }
 
     public function openCreate(): void
     {
+        if (! $this->canManage()) {
+            abort(403, 'Akun lo cuma bisa lihat data customer, gak bisa nambah data baru.');
+        }
+
         $this->resetForm();
         $this->showModal = true;
     }
 
     public function openEdit(int $id): void
     {
+        if (! $this->canManage()) {
+            abort(403, 'Akun lo cuma bisa lihat data customer, gak bisa edit data.');
+        }
+
         $c = Customer::findOrFail($id);
         $this->editingId = $c->id;
         $this->name = $c->name;
@@ -94,6 +150,10 @@ class CustomerInsight extends Component
 
     public function save(): void
     {
+        if (! $this->canManage()) {
+            abort(403, 'Akun lo gak punya izin nyimpen data customer.');
+        }
+
         $data = $this->validate();
 
         if ($this->editingId) {
@@ -107,6 +167,10 @@ class CustomerInsight extends Component
 
     public function delete(): void
     {
+        if (! $this->canManage()) {
+            abort(403, 'Akun lo gak punya izin hapus data customer.');
+        }
+
         if (! $this->editingId) {
             return;
         }
@@ -127,6 +191,18 @@ class CustomerInsight extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    protected function validationAttributes(): array
+    {
+        return [
+            'name' => 'Nama Customer',
+            'address' => 'Alamat',
+            'industry' => 'Industri',
+            'pic_name' => 'Nama PIC',
+            'pic_phone' => 'No. HP PIC',
+            'pic_email' => 'Email PIC',
+        ];
     }
 
     private function resetForm(): void

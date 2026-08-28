@@ -50,6 +50,11 @@ class OpportunityBoard extends Component
     public bool $showQuickAddCustomer = false;
     #[Validate('required_if:showQuickAddCustomer,true|string|max:150')]
     public string $new_customer_name = '';
+    // Korelasi sama field mandatory di menu Customer Insight — alamat sekarang
+    // wajib diisi di sana, jadi quick-add dari sini juga harus konsisten,
+    // biar gak ada customer yang kebuat tanpa alamat lewat jalur pintas ini.
+    #[Validate('required_if:showQuickAddCustomer,true|string')]
+    public string $new_customer_address = '';
 
     #[Validate('required|in:cybersecurity,cctv,data_center_networking,enterprise_networking,web_development,lainnya')]
     public string $category = 'cybersecurity';
@@ -355,13 +360,21 @@ class OpportunityBoard extends Component
 
     public function quickAddCustomer(): void
     {
-        $this->validateOnly('new_customer_name', [
+        $this->validate([
             'new_customer_name' => 'required|string|max:150',
+            'new_customer_address' => 'required|string',
+        ], [], [
+            'new_customer_name' => 'Nama Customer',
+            'new_customer_address' => 'Alamat',
         ]);
 
-        $customer = Customer::create(['name' => $this->new_customer_name]);
+        $customer = Customer::create([
+            'name' => $this->new_customer_name,
+            'address' => $this->new_customer_address,
+        ]);
         $this->customer_id = $customer->id;
         $this->new_customer_name = '';
+        $this->new_customer_address = '';
         $this->showQuickAddCustomer = false;
     }
 
@@ -631,7 +644,7 @@ class OpportunityBoard extends Component
         $this->reset([
             'editingId', 'title', 'customer_id', 'tcv', 'gp_percentage',
             'expected_closing_date', 'sales_id', 'presales_id', 'engineer_ids',
-            'next_action', 'notes', 'showQuickAddCustomer', 'new_customer_name',
+            'next_action', 'notes', 'showQuickAddCustomer', 'new_customer_name', 'new_customer_address',
             'lost_category', 'lost_reason', 'won_category', 'won_reason',
         ]);
         $this->category = 'cybersecurity';
