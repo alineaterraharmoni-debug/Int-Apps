@@ -186,12 +186,12 @@
                 </div>
                 <form wire:submit="save" class="space-y-4">
                     <div>
-                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Nama</label>
+                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Nama <span class="text-rose-500">*</span></label>
                         <input type="text" wire:model="name" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                         @error('name') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-2">Peran (bisa lebih dari satu)</label>
+                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-2">Peran (bisa lebih dari satu) <span class="text-rose-500">*</span></label>
                         <div class="flex gap-4">
                             <label class="flex items-center gap-1.5 text-sm">
                                 <input type="checkbox" wire:model="roles" value="sales" class="rounded border-gray-300 dark:border-gray-600"> Sales

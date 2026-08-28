@@ -413,7 +413,7 @@
                         {{-- ===== TAB: Info Utama ===== --}}
                         <div x-show="tab === 'info'" x-cloak>
                             <div class="mb-4">
-                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Judul Opty</label>
+                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Judul Opty <span class="text-rose-500">*</span></label>
                                 <input type="text" wire:model="title" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" placeholder="cth. Firewall Renewal - Bank XYZ">
                                 @error('title') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -453,9 +453,11 @@
                                         </button>
                                     @else
                                         <div class="space-y-1.5">
-                                            <input type="text" wire:model="new_customer_name" placeholder="Nama customer baru *" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                            <label class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block">Nama Customer Baru <span class="text-rose-500">*</span></label>
+                                            <input type="text" wire:model="new_customer_name" placeholder="Nama customer" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                                             @error('new_customer_name') <p class="text-xs text-red-500">{{ $message }}</p> @enderror
-                                            <textarea wire:model="new_customer_address" rows="2" placeholder="Alamat customer baru *" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>
+                                            <label class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block">Alamat <span class="text-rose-500">*</span></label>
+                                            <textarea wire:model="new_customer_address" rows="2" placeholder="Alamat lengkap customer" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>
                                             @error('new_customer_address') <p class="text-xs text-red-500">{{ $message }}</p> @enderror
                                             <div class="flex gap-1.5">
                                                 <button type="button" wire:click="quickAddCustomer" class="flex-1 text-xs font-semibold px-3 py-2 rounded-lg bg-ink text-white">Simpan Customer</button>
@@ -466,7 +468,7 @@
                                     @error('customer_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Lini Produk</label>
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Lini Produk <span class="text-rose-500">*</span></label>
                                     <select wire:model="category" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                                         @foreach ($categories as $val => $label)
                                             <option value="{{ $val }}">{{ $label }}</option>
@@ -487,14 +489,14 @@
                                 class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4"
                             >
                                 <div>
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Estimasi TCV (Rp)</label>
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Estimasi TCV (Rp) <span class="text-rose-500">*</span></label>
                                     <input type="text" inputmode="numeric" x-model="tcvDisplay"
                                            x-on:input="tcv = parseInt($event.target.value.replace(/\D/g,'')) || 0; fmt(); $wire.set('tcv', tcv, false)"
                                            placeholder="0" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                                     @error('tcv') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">GP (% dari TCV)</label>
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">GP (% dari TCV) <span class="text-rose-500">*</span></label>
                                     <input type="number" step="0.1" min="0" max="100" wire:model="gp_percentage"
                                            x-on:input="gp = $event.target.value"
                                            class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
@@ -507,7 +509,7 @@
                             </div>
 
                             <div>
-                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Rating</label>
+                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Rating <span class="text-rose-500">*</span></label>
                                 <select wire:model="rating" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                                     @foreach ($ratings as $val => $label)
                                         <option value="{{ $val }}">{{ $label }}</option>
@@ -518,7 +520,7 @@
 
                         {{-- ===== TAB: Stage & Closing ===== --}}
                         <div x-show="tab === 'stage'" x-cloak>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                            <div class="{{ in_array($stage, ['develop', 'won'], true) ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : '' }} mb-1">
                                 <div>
                                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Stage</label>
                                     @if ($canManageFull)
@@ -532,15 +534,26 @@
                                         <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Role lo dibatasin cuma sampai stage Leads.</p>
                                     @endif
                                 </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
-                                        Ekspektasi Closing
-                                        @if (in_array($stage, ['develop', 'won'], true))<span class="text-rose-500">*</span>@endif
-                                    </label>
-                                    <input type="date" wire:model="expected_closing_date" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                                    @error('expected_closing_date') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                                </div>
+
+                                {{-- Ekspektasi Closing cuma relevan begitu opty udah masuk Develop —
+                                     di Leads/Lost field ini disembunyiin total, bukan cuma ditandain
+                                     opsional, biar form-nya beneran nyesuain stage. --}}
+                                @if (in_array($stage, ['develop', 'won'], true))
+                                    <div>
+                                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
+                                            Ekspektasi Closing <span class="text-rose-500">*</span>
+                                        </label>
+                                        <input type="date" wire:model="expected_closing_date" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                        @error('expected_closing_date') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                    </div>
+                                @endif
                             </div>
+
+                            @if ($stage === 'leads')
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-4">Ekspektasi Closing baru muncul & wajib diisi begitu opty ini naik ke stage Develop.</p>
+                            @else
+                                <div class="mb-4"></div>
+                            @endif
 
                             @if ($stage === 'lost')
                                 <div class="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl p-3">
@@ -585,7 +598,7 @@
 
                         {{-- ===== TAB: Tim ===== --}}
                         <div x-show="tab === 'tim'" x-cloak>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                            <div class="{{ in_array($stage, ['develop', 'won'], true) ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : '' }} mb-4">
                                 <div>
                                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Sales (assigned) <span class="text-rose-500">*</span></label>
                                     <select wire:model="sales_id" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
@@ -596,54 +609,71 @@
                                     </select>
                                     @error('sales_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 </div>
-                                <div>
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
-                                        Presales / Tim Produk
-                                        @if ($stage === 'won')<span class="text-rose-500">*</span>@endif
-                                    </label>
-                                    <select wire:model="presales_id" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                                        <option value="">— pilih presales —</option>
-                                        @foreach ($presalesOptions as $p)
-                                            <option value="{{ $p->id }}">{{ $p->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('presales_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                                </div>
+
+                                {{-- Presales baru relevan begitu opty masuk Develop, wajib pas WON.
+                                     Disembunyiin total di Leads/Lost biar form-nya ringkes. --}}
+                                @if (in_array($stage, ['develop', 'won'], true))
+                                    <div>
+                                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
+                                            Presales / Tim Produk
+                                            @if ($stage === 'won')<span class="text-rose-500">*</span>@endif
+                                        </label>
+                                        <select wire:model="presales_id" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                            <option value="">— pilih presales —</option>
+                                            @foreach ($presalesOptions as $p)
+                                                <option value="{{ $p->id }}">{{ $p->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('presales_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                    </div>
+                                @endif
                             </div>
 
-                            <div>
-                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">
-                                    Estimasi Tim Engineer
-                                    @if ($stage === 'won')
-                                        <span class="text-rose-500">* wajib diisi minimal 1</span>
-                                    @else
-                                        <span class="font-normal text-gray-400">(isi kalau udah Close WIN)</span>
-                                    @endif
-                                </label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    @forelse ($engineerOptions as $e)
-                                        <label class="flex items-center gap-2 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-2 text-sm cursor-pointer has-[:checked]:border-sky has-[:checked]:bg-sky/5 has-[:checked]:text-sky transition">
-                                            <input type="checkbox" wire:model="engineer_ids" value="{{ $e->id }}" class="rounded border-gray-300 text-sky focus:ring-sky shrink-0">
-                                            <span class="truncate">{{ $e->name }}</span>
-                                        </label>
-                                    @empty
-                                        <div class="col-span-2 text-xs text-gray-400 dark:text-gray-500 py-2">Belum ada data engineer aktif.</div>
-                                    @endforelse
+                            {{-- Tim Engineer cuma relevan pas opty udah/mau Close WIN — disembunyiin
+                                 total di stage lain, bukan cuma ditandain "opsional". --}}
+                            @if ($stage === 'won')
+                                <div>
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">
+                                        Estimasi Tim Engineer <span class="text-rose-500">* wajib diisi minimal 1</span>
+                                    </label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        @forelse ($engineerOptions as $e)
+                                            <label class="flex items-center gap-2 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-2 text-sm cursor-pointer has-[:checked]:border-sky has-[:checked]:bg-sky/5 has-[:checked]:text-sky transition">
+                                                <input type="checkbox" wire:model="engineer_ids" value="{{ $e->id }}" class="rounded border-gray-300 text-sky focus:ring-sky shrink-0">
+                                                <span class="truncate">{{ $e->name }}</span>
+                                            </label>
+                                        @empty
+                                            <div class="col-span-2 text-xs text-gray-400 dark:text-gray-500 py-2">Belum ada data engineer aktif.</div>
+                                        @endforelse
+                                    </div>
+                                    @error('engineer_ids') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 </div>
-                                @error('engineer_ids') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                            </div>
+                            @else
+                                @if ($stage === 'leads')
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 italic">Presales muncul begitu opty naik ke Develop, Tim Engineer muncul begitu di-close WON.</p>
+                                @elseif ($stage === 'develop')
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 italic">Tim Engineer muncul begitu opty ini di-close WON.</p>
+                                @elseif ($stage === 'lost')
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 italic">Presales & Tim Engineer gak relevan lagi buat opty yang udah Lost.</p>
+                                @endif
+                            @endif
                         </div>
 
                         {{-- ===== TAB: Catatan ===== --}}
                         <div x-show="tab === 'catatan'" x-cloak>
-                            <div class="mb-4">
-                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
-                                    Next Action
-                                    @if (in_array($stage, ['develop', 'won'], true))<span class="text-rose-500">*</span>@endif
-                                </label>
-                                <input type="text" wire:model="next_action" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                                @error('next_action') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                            </div>
+                            {{-- Next Action cuma relevan/wajib pas Develop-WON — di Leads/Lost
+                                 disembunyiin total biar form-nya ringkes sesuai stage. --}}
+                            @if (in_array($stage, ['develop', 'won'], true))
+                                <div class="mb-4">
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
+                                        Next Action <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="text" wire:model="next_action" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                    @error('next_action') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            @elseif ($stage === 'leads')
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-4">Next Action muncul & wajib diisi begitu opty ini naik ke stage Develop.</p>
+                            @endif
                             <div>
                                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Catatan</label>
                                 <textarea wire:model="notes" rows="4" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>
