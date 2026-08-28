@@ -114,6 +114,12 @@
                             ])>
                                 {{ $opty->rating_label }}
                             </span>
+                            @if ($opty->hasPendingChecklist())
+                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                                    Next Action belum
+                                </span>
+                            @endif
                         </div>
 
                         <div class="font-mono font-semibold text-sm mb-1">
@@ -277,6 +283,9 @@
                                 @if ($opty->is_overdue)
                                     <span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5" title="Closing kelewat"></span>
                                 @endif
+                                @if ($opty->hasPendingChecklist())
+                                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5" title="Next Action belum di-checklist"></span>
+                                @endif
                                 {{ $opty->title }}
                             </td>
                             <td class="p-3 text-gray-500 dark:text-gray-400">{{ $opty->customer?->name ?? $opty->customer_name }}</td>
@@ -316,6 +325,9 @@
                         <div class="font-medium text-sm leading-snug flex items-start gap-1.5 min-w-0">
                             @if ($opty->is_overdue)
                                 <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" title="Closing kelewat"></span>
+                            @endif
+                            @if ($opty->hasPendingChecklist())
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" title="Next Action belum di-checklist"></span>
                             @endif
                             <span class="truncate">{{ $opty->title }}</span>
                         </div>
