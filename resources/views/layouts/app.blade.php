@@ -20,10 +20,39 @@
                         ink: '#131B33',
                         navy: '#0A1628',
                         navysoft: '#132540',
-                        amber: '#F6B01A',
-                        sky: '#19A9DB',
-                        teal: '#14B8A6',
-                        violet: '#8B5CF6',
+                        // Sebelumnya amber/sky/teal/violet didefinisiin sebagai SATU warna
+                        // flat doang (misal amber: '#F6B01A'). Efeknya class kayak
+                        // bg-amber-500, text-amber-600, bg-sky-50 dst GAK KE-RENDER sama
+                        // sekali di seluruh app (Tailwind gak tau apa itu "shade 500" dari
+                        // satu warna flat) — dipake di puluhan tempat (badge Rating Medium,
+                        // badge Kategori, dll) yang diem-diem gak muncul warnanya dari awal.
+                        // Sekarang tiap warna brand dikasih skala penuh (50-900) + DEFAULT,
+                        // jadi `bg-amber` (tanpa angka) TETEP jalan kayak biasa, DAN
+                        // `bg-amber-50`/`bg-amber-500`/dst juga ikut jalan.
+                        amber: {
+                            DEFAULT: '#F6B01A',
+                            50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                            400: '#fbbf24', 500: '#F6B01A', 600: '#d97706', 700: '#b45309',
+                            800: '#92400e', 900: '#78350f',
+                        },
+                        sky: {
+                            DEFAULT: '#19A9DB',
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+                            400: '#38bdf8', 500: '#19A9DB', 600: '#0284c7', 700: '#0369a1',
+                            800: '#075985', 900: '#0c4a6e',
+                        },
+                        teal: {
+                            DEFAULT: '#14B8A6',
+                            50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4',
+                            400: '#2dd4bf', 500: '#14B8A6', 600: '#0d9488', 700: '#0f766e',
+                            800: '#115e59', 900: '#134e4a',
+                        },
+                        violet: {
+                            DEFAULT: '#8B5CF6',
+                            50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd',
+                            400: '#a78bfa', 500: '#8B5CF6', 600: '#7c3aed', 700: '#6d28d9',
+                            800: '#5b21b6', 900: '#4c1d95',
+                        },
                     },
                     fontFamily: {
                         display: ['Manrope', 'sans-serif'],

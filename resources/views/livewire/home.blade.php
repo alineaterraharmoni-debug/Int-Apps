@@ -29,6 +29,44 @@
         </div>
     </div>
 
+    {{-- Summary Next Action yang belum di-checklist, per stage. Cuma keitung
+         buat opty yang masih hidup (bukan Lost — Lost emang gak butuh
+         checklist apa-apa). Cuma keliatan buat yang punya akses Board.
+         Ditaro langsung di bawah hero (bukan di paling bawah halaman) biar
+         actionable dari awal, gak ketelen sama modul-modul di bawahnya. --}}
+    @if (count($checklistSummary))
+        @php $totalPending = collect($checklistSummary)->sum('count'); @endphp
+        <div class="relative mb-6 bg-gradient-to-br from-amber-50 via-amber-50 to-white dark:from-amber-500/10 dark:via-gray-800 dark:to-gray-800 border border-amber-200 dark:border-amber-500/25 rounded-2xl p-4 md:p-5 overflow-hidden">
+            <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full bg-amber-200/40 dark:bg-amber-500/10 blur-2xl"></div>
+
+            {{-- justify-between sengaja DIHINDARIN di sini — itu yang bikin tombol
+                 "Buka Board" nyempil ke pojok kanan jauh pas layarnya lebar (web).
+                 Sekarang semua elemen ngumpul dari kiri pake gap, tombolnya nempel
+                 wajar di sebelah teks, bukan kedorong ke ujung. --}}
+            <div class="relative flex flex-wrap items-center gap-3 mb-3.5">
+                <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <x-icon name="alert" class="w-5 h-5" />
+                </div>
+                <div class="mr-1">
+                    <div class="font-display font-extrabold text-xl leading-none">{{ $totalPending }} Opty</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">butuh Next Action</div>
+                </div>
+                <a href="{{ route('crm.board') }}" class="shrink-0 text-xs font-semibold bg-ink text-white px-3.5 py-2.5 rounded-lg hover:bg-gray-800 whitespace-nowrap">
+                    Buka Board
+                </a>
+            </div>
+
+            <div class="relative flex flex-wrap gap-2">
+                @foreach ($checklistSummary as $row)
+                    <div class="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-amber-200/70 dark:border-amber-500/20 rounded-full pl-1.5 pr-3 py-1.5">
+                        <span class="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">{{ $row['count'] }}</span>
+                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">{{ $row['stage'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         @php
             $palette = [
@@ -79,43 +117,6 @@
                     <span class="text-[10px] font-mono text-gray-400 dark:text-gray-500">· segera hadir</span>
                 </div>
             @endforeach
-        </div>
-    @endif
-
-    {{-- Summary Next Action yang belum di-checklist, per stage. Cuma keitung
-         buat opty yang masih hidup (bukan Lost — Lost emang gak butuh
-         checklist apa-apa). Cuma keliatan buat yang punya akses Board.
-         Sengaja dibikin lebih "berani" (warna hangat, angka gede, badge
-         bulat per stage) — versi sebelumnya kartu putih polos ketelen sama
-         kartu modul di atasnya, gak ke-notice. --}}
-    @if (count($checklistSummary))
-        @php $totalPending = collect($checklistSummary)->sum('count'); @endphp
-        <div class="relative mt-4 bg-gradient-to-br from-amber-50 via-amber-50 to-white dark:from-amber-500/10 dark:via-gray-800 dark:to-gray-800 border border-amber-200 dark:border-amber-500/25 rounded-2xl p-4 md:p-5 overflow-hidden">
-            <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full bg-amber-200/40 dark:bg-amber-500/10 blur-2xl"></div>
-
-            <div class="relative flex items-center justify-between gap-3 mb-3.5">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                        <x-icon name="alert" class="w-5 h-5" />
-                    </div>
-                    <div>
-                        <div class="font-display font-extrabold text-xl leading-none">{{ $totalPending }} Opty</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">butuh Next Action</div>
-                    </div>
-                </div>
-                <a href="{{ route('crm.board') }}" class="shrink-0 text-xs font-semibold bg-ink text-white px-3.5 py-2.5 rounded-lg hover:bg-gray-800 whitespace-nowrap">
-                    Buka Board
-                </a>
-            </div>
-
-            <div class="relative flex flex-wrap gap-2">
-                @foreach ($checklistSummary as $row)
-                    <div class="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-amber-200/70 dark:border-amber-500/20 rounded-full pl-1.5 pr-3 py-1.5">
-                        <span class="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">{{ $row['count'] }}</span>
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">{{ $row['stage'] }}</span>
-                    </div>
-                @endforeach
-            </div>
         </div>
     @endif
 </div>

@@ -42,7 +42,7 @@
         @php
             $stageColors = [
                 'leads' => ['bar' => 'bg-slate-400', 'text' => 'text-slate-500 dark:text-slate-300', 'bg' => 'bg-slate-50 dark:bg-slate-500/10', 'border' => 'border-slate-200 dark:border-slate-500/30'],
-                'develop' => ['bar' => 'bg-amber-400', 'text' => 'text-amber-600 dark:text-amber-300', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'border' => 'border-amber-200 dark:border-amber-500/30'],
+                'develop' => ['bar' => 'bg-blue-400', 'text' => 'text-blue-600 dark:text-blue-300', 'bg' => 'bg-blue-50 dark:bg-blue-500/10', 'border' => 'border-blue-200 dark:border-blue-500/30'],
                 'won' => ['bar' => 'bg-emerald-500', 'text' => 'text-emerald-600 dark:text-emerald-300', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10', 'border' => 'border-emerald-200 dark:border-emerald-500/30'],
                 'lost' => ['bar' => 'bg-rose-500', 'text' => 'text-rose-600 dark:text-rose-300', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'border' => 'border-rose-200 dark:border-rose-500/30'],
             ];
@@ -115,9 +115,8 @@
                                 {{ $opty->rating_label }}
                             </span>
                             @if ($opty->hasPendingChecklist())
-                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
-                                    Next Action belum
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    Action
                                 </span>
                             @endif
                         </div>
