@@ -22,6 +22,7 @@ $icons = [
     'alert' => '<path d="M12 3 2 20h20L12 3Z" /><path d="M12 10v4" /><circle cx="12" cy="17" r="0.6" fill="currentColor" />',
     'plus' => '<path d="M12 5v14M5 12h14" />',
     'x' => '<path d="M6 6l12 12M18 6 6 18" />',
+    'truck' => '<rect x="2" y="7" width="12" height="9" rx="1" /><path d="M14 10h4l3.5 3.5V16h-7.5" /><circle cx="6.5" cy="18" r="1.6" /><circle cx="17" cy="18" r="1.6" />',
 ];
 $path = $icons[$name] ?? '';
 @endphp

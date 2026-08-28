@@ -193,8 +193,8 @@
                             <td class="py-2">
                                 <span @class([
                                     'text-[10px] font-semibold px-2 py-0.5 rounded-full',
-                                    'bg-red-50 dark:bg-red-500/10 text-red-600' => $opty->rating === 'high',
-                                    'bg-amber-50 dark:bg-amber/10 text-amber-600' => $opty->rating === 'med',
+                                    'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' => $opty->rating === 'high',
+                                    'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' => $opty->rating === 'med',
                                     'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $opty->rating === 'low',
                                 ])>{{ $opty->rating_label }}</span>
                             </td>
@@ -220,8 +220,8 @@
                         <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $opty->customer?->name ?? $opty->customer_name }}</span>
                         <span @class([
                             'text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0',
-                            'bg-red-50 dark:bg-red-500/10 text-red-600' => $opty->rating === 'high',
-                            'bg-amber-50 dark:bg-amber/10 text-amber-600' => $opty->rating === 'med',
+                            'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' => $opty->rating === 'high',
+                            'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' => $opty->rating === 'med',
                             'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $opty->rating === 'low',
                         ])>{{ $opty->rating_label }}</span>
                     </div>

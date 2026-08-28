@@ -16,6 +16,7 @@ use App\Livewire\OpportunityBoard;
 use App\Livewire\ReportDashboard;
 use App\Livewire\RoleManagement;
 use App\Livewire\TeamMembers;
+use App\Livewire\VendorManagement;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -44,6 +45,9 @@ Route::middleware('auth')->group(function () {
         });
         Route::middleware('permission:team.view')->group(function () {
             Route::get('/team', TeamMembers::class)->name('team');
+        });
+        Route::middleware('permission:vendor.view')->group(function () {
+            Route::get('/vendors', VendorManagement::class)->name('vendors');
         });
     });
 

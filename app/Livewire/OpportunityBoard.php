@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Opportunity;
 use App\Models\Customer;
 use App\Models\TeamMember;
+use App\Models\Vendor;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -244,6 +245,10 @@ class OpportunityBoard extends Component
             'canManageMqlOnly' => $this->canManageMqlOnly(),
             'canCreateOrEdit' => $canCreateOrEdit,
             'missingFieldsLabels' => $this->fieldLabels(),
+            // Vendor yang lini produknya cocok sama Lini Produk opty yang lagi
+            // diisi di form — dipake buat nyaranin di checklist "Cari harga
+            // dari Disti/Vendor" (stage Leads), biar sales gak nebak-nebak.
+            'suggestedVendors' => Vendor::forCategory($this->category)->orderBy('name')->get(),
         ]);
     }
 

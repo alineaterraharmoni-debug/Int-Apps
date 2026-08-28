@@ -214,6 +214,7 @@
                     'report' => ['route' => 'crm.report', 'active' => request()->routeIs('crm.report') || request()->routeIs('crm.report.*'), 'icon' => 'chart-bar', 'label' => 'Report', 'perm' => 'report.view', 'on' => 'bg-violet text-white shadow-sm shadow-violet/30', 'off' => 'text-violet/60 bg-white/5 hover:text-violet hover:bg-violet/10'],
                     'customer' => ['route' => 'crm.customers', 'active' => request()->routeIs('crm.customers'), 'icon' => 'building-store', 'label' => 'Customer', 'perm' => 'customer.view', 'on' => 'bg-teal text-navy shadow-sm shadow-teal/30', 'off' => 'text-teal/60 bg-white/5 hover:text-teal hover:bg-teal/10'],
                     'team' => ['route' => 'crm.team', 'active' => request()->routeIs('crm.team'), 'icon' => 'users', 'label' => 'Tim', 'perm' => 'team.view', 'on' => 'bg-amber text-navy shadow-sm shadow-amber/30', 'off' => 'text-amber/60 bg-white/5 hover:text-amber hover:bg-amber/10'],
+                    'vendor' => ['route' => 'crm.vendors', 'active' => request()->routeIs('crm.vendors'), 'icon' => 'truck', 'label' => 'Vendor', 'perm' => 'vendor.view', 'on' => 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30', 'off' => 'text-indigo-400 bg-white/5 hover:text-indigo-300 hover:bg-indigo-500/10'],
                 ];
                 $visibleTabs = collect($subTabConfig)->filter(fn ($t) => auth()->user()->hasPermission($t['perm']));
                 $subTabs = max($visibleTabs->count(), 1);

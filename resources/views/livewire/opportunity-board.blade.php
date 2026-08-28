@@ -103,13 +103,13 @@
                         <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ $opty->customer?->name ?? $opty->customer_name }}</div>
 
                         <div class="flex items-center gap-1.5 mb-2 flex-wrap">
-                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 text-sky-600">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400">
                                 {{ $opty->category_label }}
                             </span>
                             <span @class([
                                 'text-[10px] font-semibold px-2 py-0.5 rounded-full',
-                                'bg-red-50 text-red-600' => $opty->rating === 'high',
-                                'bg-amber-50 text-amber-600' => $opty->rating === 'med',
+                                'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' => $opty->rating === 'high',
+                                'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' => $opty->rating === 'med',
                                 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $opty->rating === 'low',
                             ])>
                                 {{ $opty->rating_label }}
@@ -294,8 +294,8 @@
                             <td class="p-3">
                                 <span @class([
                                     'text-[10px] font-semibold px-2 py-0.5 rounded-full',
-                                    'bg-red-50 dark:bg-red-500/10 text-red-600' => $opty->rating === 'high',
-                                    'bg-amber-50 dark:bg-amber/10 text-amber-600' => $opty->rating === 'med',
+                                    'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' => $opty->rating === 'high',
+                                    'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' => $opty->rating === 'med',
                                     'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $opty->rating === 'low',
                                 ])>{{ $opty->rating_label }}</span>
                             </td>
@@ -336,8 +336,8 @@
                         <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $opty->customer?->name ?? $opty->customer_name }}</span>
                         <span @class([
                             'text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0',
-                            'bg-red-50 dark:bg-red-500/10 text-red-600' => $opty->rating === 'high',
-                            'bg-amber-50 dark:bg-amber/10 text-amber-600' => $opty->rating === 'med',
+                            'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' => $opty->rating === 'high',
+                            'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' => $opty->rating === 'med',
                             'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $opty->rating === 'low',
                         ])>{{ $opty->rating_label }}</span>
                     </div>
@@ -480,7 +480,7 @@
                                 </div>
                                 <div>
                                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Lini Produk <span class="text-rose-500">*</span></label>
-                                    <select wire:model="category" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                                    <select wire:model.live="category" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                                         @foreach ($categories as $val => $label)
                                             <option value="{{ $val }}">{{ $label }}</option>
                                         @endforeach
@@ -691,6 +691,27 @@
                                             </label>
                                         @endforeach
                                     </div>
+
+                                    {{-- Saran vendor yang lini produknya cocok sama Lini Produk opty ini —
+                                         cuma di Leads, soalnya di situ checklist-nya emang "cari harga ke
+                                         Disti/Vendor". Reaktif ngikutin pilihan Lini Produk di tab Info Utama. --}}
+                                    @if ($stage === 'leads')
+                                        <div class="mt-2.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-lg px-3 py-2.5">
+                                            @if ($suggestedVendors->isNotEmpty())
+                                                <div class="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 mb-1">Vendor yang cocok buat "{{ $categories[$category] ?? '' }}":</div>
+                                                <div class="flex flex-wrap gap-1">
+                                                    @foreach ($suggestedVendors as $sv)
+                                                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-300">{{ $sv->name }}</span>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <div class="text-[11px] text-indigo-600 dark:text-indigo-300">
+                                                    Belum ada vendor yang ditandain buat lini "{{ $categories[$category] ?? '' }}" —
+                                                    <a href="{{ route('crm.vendors') }}" class="underline font-semibold">tambahin di menu Vendor</a>.
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                             @elseif ($stage === 'leads')
                                 <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-4">Next Action muncul begitu opty ini naik ke stage Develop.</p>
