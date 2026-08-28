@@ -36,6 +36,7 @@
                 @unless ($role->is_system)
                     <button wire:click="openEdit({{ $role->id }})" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:text-white">Edit</button>
                 @endunless
+                <button wire:click="duplicateRole({{ $role->id }})" class="text-xs font-semibold text-sky {{ $role->is_system ? '' : 'ml-3' }}">Duplicate</button>
             </div>
         @endforeach
     </div>
@@ -56,8 +57,17 @@
                     </div>
 
                     @foreach ($catalog as $group => $permissions)
+                        @php
+                            $groupKeys = array_keys($permissions);
+                            $allChecked = count(array_intersect($groupKeys, $selectedPermissions)) === count($groupKeys);
+                        @endphp
                         <div>
-                            <div class="text-xs font-bold text-gray-600 dark:text-gray-300 mb-2">{{ $group }}</div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="text-xs font-bold text-gray-600 dark:text-gray-300">{{ $group }}</div>
+                                <button type="button" wire:click="toggleGroup('{{ $group }}')" class="text-[11px] font-semibold text-sky">
+                                    {{ $allChecked ? 'Uncheck semua' : 'Centang semua' }}
+                                </button>
+                            </div>
                             <div class="space-y-1.5 pl-1">
                                 @foreach ($permissions as $key => $label)
                                     <label class="flex items-start gap-2 text-sm">

@@ -28,6 +28,26 @@ class RoleManagement extends Component
         ]);
     }
 
+    /**
+     * Select-all / uncheck-all buat satu grup permission sekaligus, biar gak
+     * perlu nyentang satu-satu kalau mau kasih akses penuh ke satu modul.
+     */
+    public function toggleGroup(string $group): void
+    {
+        if (! array_key_exists($group, Permissions::CATALOG)) {
+            return;
+        }
+
+        $groupKeys = array_keys(Permissions::CATALOG[$group]);
+        $allChecked = count(array_intersect($groupKeys, $this->selectedPermissions)) === count($groupKeys);
+
+        if ($allChecked) {
+            $this->selectedPermissions = array_values(array_diff($this->selectedPermissions, $groupKeys));
+        } else {
+            $this->selectedPermissions = array_values(array_unique(array_merge($this->selectedPermissions, $groupKeys)));
+        }
+    }
+
     public function openCreate(): void
     {
         $this->resetForm();
@@ -39,6 +59,22 @@ class RoleManagement extends Component
         $role = Role::findOrFail($id);
         $this->editingId = $role->id;
         $this->name = $role->name;
+        $this->selectedPermissions = $role->permissions ?? [];
+        $this->showModal = true;
+    }
+
+    /**
+     * Bikin role baru dari salinan permission role yang udah ada — biar
+     * gak perlu nyentang ulang dari nol kalau mau bikin role yang mirip
+     * (misal "Sales Senior" dari "Sales" + beberapa akses tambahan).
+     * Berlaku buat role bawaan sistem juga, karena hasilnya SELALU role baru
+     * (bukan ngedit yang lama), jadi aman.
+     */
+    public function duplicateRole(int $id): void
+    {
+        $role = Role::findOrFail($id);
+        $this->resetForm();
+        $this->name = $role->name.' (Copy)';
         $this->selectedPermissions = $role->permissions ?? [];
         $this->showModal = true;
     }

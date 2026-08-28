@@ -27,6 +27,19 @@ class LoginController extends Controller
             ]);
         }
 
+        // Akun yang dinonaktifin (via Kelola Akun) gak boleh login lagi,
+        // walau password-nya bener. Langsung logout paksa & session-nya
+        // dihapus biar gak ada state login yang nyangkut.
+        if (! $request->user()->is_active) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun ini udah dinonaktifin. Hubungi Super Admin kalau ini keliru.',
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('home'));
