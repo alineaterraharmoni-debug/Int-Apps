@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DocumentPdfController;
 use App\Http\Controllers\OpportunityExportController;
+use App\Http\Controllers\ReportExportController;
 use App\Http\Controllers\ReportPdfController;
 use App\Livewire\AccountManagement;
 use App\Livewire\ChangePassword;
@@ -36,6 +37,7 @@ Route::middleware('auth')->group(function () {
         Route::middleware('permission:report.view')->group(function () {
             Route::get('/report', ReportDashboard::class)->name('report');
             Route::get('/report/export-pdf', [ReportPdfController::class, 'export'])->name('report.export-pdf');
+            Route::get('/report/export-csv', [ReportExportController::class, 'exportCsv'])->name('report.export-csv');
         });
         Route::middleware('permission:customer.view')->group(function () {
             Route::get('/customers', CustomerInsight::class)->name('customers');

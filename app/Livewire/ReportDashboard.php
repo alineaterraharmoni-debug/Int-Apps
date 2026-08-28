@@ -22,6 +22,12 @@ class ReportDashboard extends Component
     public ?string $stage = null;
     public ?string $rating = null;
     public ?string $customer_id = null;
+    public bool $showFilters = false;
+
+    public string $chartMetric = 'count'; // count | tcv
+
+    public int $detailPage = 1;
+    const DETAIL_PER_PAGE = 25;
 
     public function mount(): void
     {
@@ -37,9 +43,19 @@ class ReportDashboard extends Component
         $this->period = $period;
     }
 
+    public function setChartMetric(string $metric): void
+    {
+        $this->chartMetric = in_array($metric, ['count', 'tcv'], true) ? $metric : 'count';
+    }
+
     public function resetFilters(): void
     {
         $this->reset(['category', 'stage', 'rating', 'customer_id']);
+    }
+
+    public function goToDetailPage(int $page): void
+    {
+        $this->detailPage = max(1, $page);
     }
 
     // Livewire 3 manggil ini otomatis tiap kali ADA property publik yang
@@ -48,6 +64,15 @@ class ReportDashboard extends Component
     // DOM 'livewire:updated' kayak versi 2 dulu.
     public function updated($name, $value = null): void
     {
+        // Ganti periode/filter apapun -> balikin ke halaman 1 Detail Opty,
+        // biar gak nyangkut di halaman kosong kalau hasil filter baru lebih
+        // dikit. Sengaja di-whitelist (bukan "semua kecuali detailPage")
+        // biar toggle chart/filter panel gak ikut ke-reset tanpa alasan.
+        $dataAffecting = ['period', 'year', 'month', 'quarter', 'custom_from', 'custom_to', 'category', 'stage', 'rating', 'customer_id'];
+        if (in_array($name, $dataAffecting, true)) {
+            $this->detailPage = 1;
+        }
+
         $this->dispatch('report-updated');
     }
 
@@ -74,6 +99,15 @@ class ReportDashboard extends Component
 
         $growth = $service->growth($current, $previous);
 
+        // Detail Opty di-paginate MANUAL (bukan lewat query ->paginate())
+        // soalnya summarize() butuh koleksi PENUH buat ngitung total/growth.
+        // Yang di-slice cuma buat tampilan tabel/card-nya aja.
+        $detailTotalPages = max(1, (int) ceil($current['rows']->count() / self::DETAIL_PER_PAGE));
+        if ($this->detailPage > $detailTotalPages) {
+            $this->detailPage = $detailTotalPages;
+        }
+        $detailRows = $current['rows']->forPage($this->detailPage, self::DETAIL_PER_PAGE)->values();
+
         // Jamin chart selalu di-refresh tiap render (filter apapun yang berubah).
         $this->dispatch('report-updated');
 
@@ -86,6 +120,8 @@ class ReportDashboard extends Component
             'current' => $current,
             'previous' => $previous,
             'growth' => $growth,
+            'detailRows' => $detailRows,
+            'detailTotalPages' => $detailTotalPages,
         ]);
     }
 }
