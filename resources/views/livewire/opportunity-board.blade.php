@@ -364,7 +364,7 @@
             $infoHasError = $errors->hasAny(['title', 'customer_id', 'new_customer_name', 'new_customer_address', 'category', 'tcv', 'gp_percentage', 'rating']);
             $stageHasError = $errors->hasAny(['stage', 'expected_closing_date', 'lost_category', 'lost_reason', 'won_category', 'won_reason']);
             $timHasError = $errors->hasAny(['sales_id', 'presales_id', 'engineer_ids']);
-            $catatanHasError = $errors->hasAny(['next_action', 'notes']);
+            $catatanHasError = $errors->hasAny(['notes']);
         @endphp
         <div class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-4 z-50" wire:click.self="closeModal">
             <div
@@ -661,18 +661,30 @@
 
                         {{-- ===== TAB: Catatan ===== --}}
                         <div x-show="tab === 'catatan'" x-cloak>
-                            {{-- Next Action cuma relevan/wajib pas Develop-WON — di Leads/Lost
-                                 disembunyiin total biar form-nya ringkes sesuai stage. --}}
-                            @if (in_array($stage, ['develop', 'won'], true))
+                            {{-- Next Action sekarang checklist yang nyesuain stage (bukan teks
+                                 bebas lagi) — Leads: cari harga ke Disti/Vendor. Develop: bikin
+                                 Quotation ATAU PO. WON: bikin BAST ATAU Invoice. Lost gak butuh
+                                 apa-apa. Progress-nya kepake buat summary "belum di-checklist"
+                                 di Home. --}}
+                            @php
+                                $nextActionItems = \App\Models\Opportunity::NEXT_ACTION_ITEMS[$stage] ?? [];
+                            @endphp
+                            @if (count($nextActionItems))
                                 <div class="mb-4">
-                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
-                                        Next Action <span class="text-rose-500">*</span>
-                                    </label>
-                                    <input type="text" wire:model="next_action" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                                    @error('next_action') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Next Action</label>
+                                    <div class="space-y-1.5">
+                                        @foreach ($nextActionItems as $key => $label)
+                                            <label class="flex items-center gap-2 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm cursor-pointer has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50 dark:has-[:checked]:bg-emerald-500/10 transition">
+                                                <input type="checkbox" wire:model="next_action_checklist.{{ $key }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500">
+                                                <span>{{ $label }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @elseif ($stage === 'leads')
-                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-4">Next Action muncul & wajib diisi begitu opty ini naik ke stage Develop.</p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-4">Next Action muncul begitu opty ini naik ke stage Develop.</p>
+                            @elseif ($stage === 'lost')
+                                <p class="text-xs text-gray-400 dark:text-gray-500 italic mb-4">Gak ada Next Action buat opty yang udah Lost.</p>
                             @endif
                             <div>
                                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Catatan</label>

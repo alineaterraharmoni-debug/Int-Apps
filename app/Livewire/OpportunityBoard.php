@@ -89,7 +89,7 @@ class OpportunityBoard extends Component
     public array $engineer_ids = [];
 
     #[Validate('nullable|string|max:255')]
-    public ?string $next_action = null;
+    public array $next_action_checklist = [];
 
     #[Validate('nullable|string')]
     public ?string $notes = null;
@@ -271,7 +271,7 @@ class OpportunityBoard extends Component
         $map = [
             'stage' => ['stage', 'expected_closing_date', 'lost_category', 'lost_reason', 'won_category', 'won_reason'],
             'tim' => ['sales_id', 'presales_id', 'engineer_ids'],
-            'catatan' => ['next_action', 'notes'],
+            'catatan' => ['notes'],
         ];
 
         foreach ($map as $tab => $tabFields) {
@@ -294,7 +294,6 @@ class OpportunityBoard extends Component
             'presales_id' => 'Presales',
             'engineer_ids' => 'Tim Engineer',
             'expected_closing_date' => 'Ekspektasi Closing',
-            'next_action' => 'Next Action',
             'won_category' => 'Alasan Menang',
             'lost_category' => 'Alasan Drop',
         ];
@@ -348,7 +347,7 @@ class OpportunityBoard extends Component
         $this->sales_id = $opty->sales_id;
         $this->presales_id = $opty->presales_id;
         $this->engineer_ids = $opty->engineers->pluck('id')->map(fn ($v) => (string) $v)->toArray();
-        $this->next_action = $opty->next_action;
+        $this->next_action_checklist = $opty->next_action_checklist ?? [];
         $this->notes = $opty->notes;
 
         $this->missingFieldsNotice = $missingFields;
@@ -409,17 +408,17 @@ class OpportunityBoard extends Component
         // banyak yang wajib keisi. Berlaku pas create opty baru MAUPUN pas
         // pindah stage lewat form edit:
         // - Leads   : field dasar aja (di atas) + WAJIB ada Sales yang pegang.
-        // - Develop : + Ekspektasi Closing & Next Action wajib ada (biar bisa di-forecast).
+        // - Develop : + Ekspektasi Closing wajib ada (biar bisa di-forecast).
         // - WON     : + Alasan Menang, Presales, dan minimal 1 Tim Engineer wajib diisi.
         // - LOST    : + Alasan Drop wajib diisi.
+        // (Next Action sekarang checklist, bukan field wajib — checklist-nya
+        // sengaja gak nge-block simpen, cuma nge-track buat summary di Home.)
         $rules['sales_id'] = 'required|exists:team_members,id';
 
         if (in_array($this->stage, ['develop', 'won'], true)) {
             $rules['expected_closing_date'] = 'required|date';
-            $rules['next_action'] = 'required|string|max:255';
         } else {
             $rules['expected_closing_date'] = 'nullable|date';
-            $rules['next_action'] = 'nullable|string|max:255';
         }
 
         if ($this->stage === 'won') {
@@ -454,7 +453,6 @@ class OpportunityBoard extends Component
             'presales_id' => 'Presales',
             'engineer_ids' => 'Tim Engineer',
             'expected_closing_date' => 'Ekspektasi Closing',
-            'next_action' => 'Next Action',
             'won_category' => 'Kategori Alasan Menang',
             'lost_category' => 'Kategori Alasan Drop',
         ];
@@ -471,6 +469,10 @@ class OpportunityBoard extends Component
 
         $engineerIds = $data['engineer_ids'] ?? [];
         unset($data['engineer_ids']);
+
+        // next_action_checklist gak lewat $rules (bukan field yang divalidasi
+        // wajib), jadi ditempel manual ke $data biar ikut kesimpen.
+        $data['next_action_checklist'] = $this->next_action_checklist;
 
         // customer_name dipertahankan sebagai cache tampilan cepat, disinkron dari master
         $data['customer_name'] = Customer::find($data['customer_id'])->name;
@@ -606,9 +608,6 @@ class OpportunityBoard extends Component
             if (! $opty->expected_closing_date) {
                 $missing[] = 'expected_closing_date';
             }
-            if (! $opty->next_action) {
-                $missing[] = 'next_action';
-            }
         }
 
         if ($stage === 'won') {
@@ -644,7 +643,7 @@ class OpportunityBoard extends Component
         $this->reset([
             'editingId', 'title', 'customer_id', 'tcv', 'gp_percentage',
             'expected_closing_date', 'sales_id', 'presales_id', 'engineer_ids',
-            'next_action', 'notes', 'showQuickAddCustomer', 'new_customer_name', 'new_customer_address',
+            'next_action_checklist', 'notes', 'showQuickAddCustomer', 'new_customer_name', 'new_customer_address',
             'lost_category', 'lost_reason', 'won_category', 'won_reason',
         ]);
         $this->category = 'cybersecurity';

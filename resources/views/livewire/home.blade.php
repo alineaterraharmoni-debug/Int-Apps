@@ -81,4 +81,24 @@
             @endforeach
         </div>
     @endif
+
+    {{-- Summary Next Action yang belum di-checklist, per stage. Cuma keitung
+         buat opty yang masih hidup (bukan Lost — Lost emang gak butuh
+         checklist apa-apa). Cuma keliatan buat yang punya akses Board. --}}
+    @if (count($checklistSummary))
+        <div class="mt-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="font-display font-bold text-sm">Next Action Belum Di-checklist</div>
+                <a href="{{ route('crm.board') }}" class="text-xs font-semibold text-sky">Buka Board →</a>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                @foreach ($checklistSummary as $row)
+                    <div class="inline-flex items-center gap-1.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs font-medium rounded-full pl-2 pr-3 py-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                        {{ $row['count'] }} opty {{ $row['stage'] }}
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 </div>

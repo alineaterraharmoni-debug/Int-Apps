@@ -71,6 +71,30 @@ class Home extends Component
                 ->count()
             : 0;
 
+        // Summary "Next Action belum di-checklist" per stage — cuma buat yang
+        // punya akses lihat Board (crm.view). Dihitung dari opty yang masih
+        // "hidup" (bukan Lost, Lost emang gak butuh checklist apa-apa).
+        $checklistSummary = [];
+        if ($canCrm) {
+            $openOpties = Opportunity::whereIn('stage', ['leads', 'develop', 'won'])
+                ->select('id', 'stage', 'next_action_checklist')
+                ->get();
+
+            $counts = ['leads' => 0, 'develop' => 0, 'won' => 0];
+            foreach ($openOpties as $o) {
+                if ($o->hasPendingChecklist()) {
+                    $counts[$o->stage]++;
+                }
+            }
+
+            $stageLabels = ['leads' => 'Leads', 'develop' => 'Develop', 'won' => 'Closing WON'];
+            foreach ($counts as $stageKey => $count) {
+                if ($count > 0) {
+                    $checklistSummary[] = ['stage' => $stageLabels[$stageKey], 'count' => $count];
+                }
+            }
+        }
+
         // Quick action di hero — satu aksi paling relevan sesuai role, biar
         // gak perlu masuk modul dulu buat kerjaan paling sering dilakuin.
         $canManageOpty = $user->hasPermission('crm.manage') || $user->hasPermission('crm.manage_mql_only');
@@ -90,6 +114,7 @@ class Home extends Component
             'closingSoonCount' => $closingSoonCount,
             'canCrm' => $canCrm,
             'quickAction' => $quickAction,
+            'checklistSummary' => $checklistSummary,
         ]);
     }
 }

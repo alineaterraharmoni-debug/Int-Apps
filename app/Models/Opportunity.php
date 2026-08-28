@@ -29,6 +29,7 @@ class Opportunity extends Model
         'sales_id',
         'presales_id',
         'next_action',
+        'next_action_checklist',
         'notes',
     ];
 
@@ -37,6 +38,26 @@ class Opportunity extends Model
         'gp_percentage' => 'decimal:2',
         'expected_closing_date' => 'date',
         'closed_at' => 'date',
+        'next_action_checklist' => 'array',
+    ];
+
+    // Checklist "next action" nyesuain stage — flow bisnis Alinea:
+    // Leads butuh cari harga ke Disti/Vendor, Develop butuh Quotation ATAU PO,
+    // WON butuh BAST ATAU Invoice, Lost gak butuh apa-apa. "Atau" artinya
+    // salah satu aja cukup buat dianggap "ada progress", gak wajib dua-duanya.
+    const NEXT_ACTION_ITEMS = [
+        'leads' => [
+            'cari_harga_disti' => 'Cari harga dari Disti/Vendor',
+        ],
+        'develop' => [
+            'create_quotation' => 'Create Quotation',
+            'create_po' => 'Create PO',
+        ],
+        'won' => [
+            'create_bast' => 'Create BAST',
+            'create_invoice' => 'Create Invoice',
+        ],
+        'lost' => [],
     ];
 
     const STAGES = [
@@ -138,6 +159,33 @@ class Opportunity extends Model
         return $this->expected_closing_date !== null
             && $this->expected_closing_date->isPast()
             && ! in_array($this->stage, ['won', 'lost'], true);
+    }
+
+    // Item checklist next-action yang relevan buat stage opty ini sekarang.
+    public function nextActionItems(): array
+    {
+        return self::NEXT_ACTION_ITEMS[$this->stage] ?? [];
+    }
+
+    // "Belum ada progress sama sekali" — dipake buat summary di Home.
+    // Bukan "belum semua checklist tercentang", soalnya "atau" artinya
+    // satu tercentang aja udah dianggap ada progress.
+    public function hasPendingChecklist(): bool
+    {
+        $items = $this->nextActionItems();
+        if (empty($items)) {
+            return false;
+        }
+
+        $checklist = $this->next_action_checklist ?? [];
+
+        foreach (array_keys($items) as $key) {
+            if (! empty($checklist[$key])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function scopeFilter($query, array $filters)
