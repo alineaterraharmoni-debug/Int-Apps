@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Opportunity;
 use App\Services\OpportunityReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class ReportPdfController extends Controller
 {
@@ -34,29 +34,15 @@ class ReportPdfController extends Controller
 
         $growth = $service->growth($current, $previous);
 
-        $categoryChartUrl = $this->quickChartUrl([
-            'type' => 'bar',
-            'data' => [
-                'labels' => $current['byCategory']->pluck('label')->toArray(),
-                'datasets' => [[
-                    'label' => 'Jumlah Opty',
-                    'data' => $current['byCategory']->pluck('count')->toArray(),
-                    'backgroundColor' => '#2AA9E0',
-                ]],
-            ],
-            'options' => ['plugins' => ['legend' => ['display' => false]]],
-        ]);
-
-        $stageChartUrl = $this->quickChartUrl([
-            'type' => 'pie',
-            'data' => [
-                'labels' => $current['byStage']->pluck('label')->toArray(),
-                'datasets' => [[
-                    'data' => $current['byStage']->pluck('count')->toArray(),
-                    'backgroundColor' => ['#19A9DB', '#F6B01A', '#16A34A', '#DC2626'],
-                ]],
-            ],
-        ]);
+        // Khusus buat PDF: 4 grafik (bukan 2), soalnya PDF itu dokumen statis
+        // yang gak bisa di-toggle kayak di web/PWA — jadi Jumlah Opty DAN
+        // Nilai TCV dua-duanya langsung ditampilin sekaligus per kategori
+        // maupun per stage. Tiap bar/slice juga dikasih angka aslinya
+        // langsung (data label), gak cuma ngandelin warna doang.
+        $categoryCountChartUrl = $this->quickChartUrl($this->categoryChartConfig($current['byCategory'], 'count'));
+        $categoryTcvChartUrl = $this->quickChartUrl($this->categoryChartConfig($current['byCategory'], 'tcv'));
+        $stageCountChartUrl = $this->quickChartUrl($this->stageChartConfig($current['byStage'], 'count'));
+        $stageTcvChartUrl = $this->quickChartUrl($this->stageChartConfig($current['byStage'], 'tcv'));
 
         $pdf = Pdf::loadView('pdf.report', [
             'filters' => $extraFilters,
@@ -68,14 +54,83 @@ class ReportPdfController extends Controller
             'wonTcv' => $current['wonTcv'],
             'growth' => $growth,
             'byCategory' => $current['byCategory'],
-            'categoryChartUrl' => $categoryChartUrl,
-            'stageChartUrl' => $stageChartUrl,
+            'categoryCountChartUrl' => $categoryCountChartUrl,
+            'categoryTcvChartUrl' => $categoryTcvChartUrl,
+            'stageCountChartUrl' => $stageCountChartUrl,
+            'stageTcvChartUrl' => $stageTcvChartUrl,
             'generatedAt' => now(),
         ])->setPaper('a4', 'portrait');
 
         $safeLabel = preg_replace('/[^A-Za-z0-9\-]+/', '-', $range['label']);
 
         return $pdf->download('opty-report-'.$safeLabel.'-'.now()->format('His').'.pdf');
+    }
+
+    /**
+     * Config chart bar "per Kategori", bisa metric 'count' (jumlah opty)
+     * atau 'tcv' (nilai Rp). Datalabels dinyalain biar angkanya nempel
+     * langsung di tiap bar.
+     */
+    private function categoryChartConfig(Collection $rows, string $metric): array
+    {
+        $isTcv = $metric === 'tcv';
+
+        return [
+            'type' => 'bar',
+            'data' => [
+                'labels' => $rows->pluck('label')->toArray(),
+                'datasets' => [[
+                    'label' => $isTcv ? 'Total TCV (Rp)' : 'Jumlah Opty',
+                    'data' => $isTcv ? $rows->pluck('tcv')->toArray() : $rows->pluck('count')->toArray(),
+                    'backgroundColor' => '#2AA9E0',
+                ]],
+            ],
+            'options' => [
+                'plugins' => [
+                    'legend' => ['display' => false],
+                    'datalabels' => [
+                        'anchor' => 'end',
+                        'align' => 'top',
+                        'color' => '#131B33',
+                        'font' => ['weight' => 'bold', 'size' => 9],
+                        'formatter' => $isTcv
+                            ? "function(v){ return 'Rp ' + Math.round(v/1000000).toLocaleString('id-ID') + 'jt'; }"
+                            : "function(v){ return v; }",
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Config chart pie "per Stage", sama polanya kayak categoryChartConfig
+     * di atas — bedanya tipe chart-nya pie, warnanya ngikutin warna stage.
+     */
+    private function stageChartConfig(Collection $rows, string $metric): array
+    {
+        $isTcv = $metric === 'tcv';
+
+        return [
+            'type' => 'pie',
+            'data' => [
+                'labels' => $rows->pluck('label')->toArray(),
+                'datasets' => [[
+                    'data' => $isTcv ? $rows->pluck('tcv')->toArray() : $rows->pluck('count')->toArray(),
+                    'backgroundColor' => ['#19A9DB', '#F6B01A', '#16A34A', '#DC2626'],
+                ]],
+            ],
+            'options' => [
+                'plugins' => [
+                    'datalabels' => [
+                        'color' => '#fff',
+                        'font' => ['weight' => 'bold', 'size' => 9],
+                        'formatter' => $isTcv
+                            ? "function(v){ return 'Rp ' + Math.round(v/1000000).toLocaleString('id-ID') + 'jt'; }"
+                            : "function(v){ return v; }",
+                    ],
+                ],
+            ],
+        ];
     }
 
     /**

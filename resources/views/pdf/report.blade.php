@@ -55,16 +55,30 @@
         </tr>
     </table>
 
-    <div class="section-title">Grafik</div>
+    <div class="section-title">Grafik — Jumlah Opty</div>
     <table class="charts">
         <tr>
             <td>
                 <div style="font-size:10px; margin-bottom:4px;">Jumlah Opty per Kategori</div>
-                <img src="{{ $categoryChartUrl }}">
+                <img src="{{ $categoryCountChartUrl }}">
             </td>
             <td>
-                <div style="font-size:10px; margin-bottom:4px;">Distribusi per Stage</div>
-                <img src="{{ $stageChartUrl }}">
+                <div style="font-size:10px; margin-bottom:4px;">Distribusi Jumlah per Stage</div>
+                <img src="{{ $stageCountChartUrl }}">
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-title">Grafik — Nilai TCV</div>
+    <table class="charts">
+        <tr>
+            <td>
+                <div style="font-size:10px; margin-bottom:4px;">Nilai TCV per Kategori</div>
+                <img src="{{ $categoryTcvChartUrl }}">
+            </td>
+            <td>
+                <div style="font-size:10px; margin-bottom:4px;">Distribusi Nilai per Stage</div>
+                <img src="{{ $stageTcvChartUrl }}">
             </td>
         </tr>
     </table>
