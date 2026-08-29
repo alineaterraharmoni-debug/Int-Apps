@@ -5,17 +5,42 @@ namespace App\Livewire;
 use App\Models\Document;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 class DocumentList extends Component
 {
+    use WithPagination;
+
     public string $typeFilter = '';
+    public string $statusFilter = '';
     public string $search = '';
+
+    public function updatingTypeFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
 
     public function render()
     {
-        $documents = Document::with(['customer', 'vendor'])
+        // select() cuma narik kolom yang beneran kepake di list (bukan
+        // narik terms/notes yang bisa panjang) — biar ringan pas datanya
+        // udah banyak. with() dibatesin id+name doang dari relasi.
+        $documents = Document::query()
+            ->select(['id', 'type', 'status', 'number', 'doc_date', 'customer_id', 'vendor_id', 'total'])
+            ->with(['customer:id,name', 'vendor:id,name'])
             ->when($this->typeFilter, fn ($q, $v) => $q->where('type', $v))
+            ->when($this->statusFilter, fn ($q, $v) => $q->where('status', $v))
             ->when($this->search, function ($q, $v) {
                 $q->where(function ($qq) use ($v) {
                     $qq->where('number', 'like', "%{$v}%")
@@ -25,12 +50,22 @@ class DocumentList extends Component
             })
             ->orderByDesc('doc_date')
             ->orderByDesc('id')
-            ->get();
+            ->paginate(25);
 
         return view('livewire.document-list', [
             'documents' => $documents,
             'types' => Document::TYPES,
+            'statuses' => Document::STATUSES,
             'canManage' => auth()->user()->hasPermission('document.manage'),
         ]);
+    }
+
+    public function delete(int $id): void
+    {
+        if (! auth()->user()->hasPermission('document.manage')) {
+            abort(403, 'Akun lo gak punya izin hapus dokumen.');
+        }
+
+        Document::findOrFail($id)->delete();
     }
 }

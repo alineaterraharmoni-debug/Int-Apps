@@ -15,6 +15,7 @@ class DocumentForm extends Component
 {
     public ?int $editingId = null;
     public string $type = 'quotation';
+    public string $status = 'draft';
     public ?string $number = null;
     public string $doc_date;
 
@@ -40,6 +41,7 @@ class DocumentForm extends Component
             $doc = Document::with('items')->findOrFail($id);
             $this->editingId = $doc->id;
             $this->type = $doc->type;
+            $this->status = $doc->status;
             $this->number = $doc->number;
             $this->doc_date = $doc->doc_date->toDateString();
             $this->opportunity_id = $doc->opportunity_id;
@@ -119,6 +121,7 @@ class DocumentForm extends Component
     {
         $rules = [
             'type' => 'required|in:quotation,invoice,po,bast',
+            'status' => 'required|in:draft,final',
             'doc_date' => 'required|date',
             'contact_name' => 'nullable|string|max:150',
             'terms' => 'nullable|string',
@@ -152,7 +155,17 @@ class DocumentForm extends Component
 
         unset($data['items']);
 
+        // Kalau lagi edit dan opty/jenis dokumennya DIGANTI, checklist Next
+        // Action di opty yang LAMA perlu di-re-sync juga (kemungkinan balik
+        // ke uncheck kalau gak ada dokumen final lain dari jenis yang sama).
+        // Opty yang BARU otomatis ke-sync sendiri lewat event 'saved' di model.
+        $oldOpportunityId = null;
+        $oldType = null;
         if ($this->editingId) {
+            $existing = Document::find($this->editingId);
+            $oldOpportunityId = $existing?->opportunity_id;
+            $oldType = $existing?->type;
+
             $doc = Document::findOrFail($this->editingId);
             $doc->update($data);
             $doc->items()->delete();
@@ -174,7 +187,27 @@ class DocumentForm extends Component
             ]);
         }
 
+        if ($oldOpportunityId && ($oldOpportunityId !== $doc->opportunity_id || $oldType !== $doc->type)) {
+            $doc->syncOpportunityChecklist($oldOpportunityId, $oldType);
+        }
+
         session()->flash('saved', $doc->number);
         $this->redirect(route('documents.edit', $doc->id), navigate: false);
+    }
+
+    public function delete(): void
+    {
+        if (! auth()->user()->hasPermission('document.manage')) {
+            abort(403, 'Akun lo gak punya izin hapus dokumen.');
+        }
+
+        if (! $this->editingId) {
+            return;
+        }
+
+        Document::findOrFail($this->editingId)->delete();
+
+        session()->flash('deleted', true);
+        $this->redirect(route('documents.index'), navigate: false);
     }
 }

@@ -12,6 +12,23 @@
         @endif
     </div>
 
+    {{-- Toggle Draft/Final — Draft SENGAJA gak ngecentang checklist Next
+         Action di opty terkait (belum "beneran jadi"), baru pas Final
+         checklist-nya otomatis ke-centang. --}}
+    <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-sm mb-4">
+        <button type="button" wire:click="$set('status', 'draft')" class="px-3 py-1.5 rounded-md font-medium {{ $status === 'draft' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">
+            Draft
+        </button>
+        <button type="button" wire:click="$set('status', 'final')" class="px-3 py-1.5 rounded-md font-medium {{ $status === 'final' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">
+            Final
+        </button>
+    </div>
+    @if ($status === 'draft')
+        <p class="text-[11px] text-gray-400 dark:text-gray-500 -mt-3 mb-4">
+            Dokumen masih Draft belum ngecentang checklist Next Action di opty terkait — ganti ke Final kalau udah beneran jadi/dikirim.
+        </p>
+    @endif
+
     @if (session('saved'))
         <div class="bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm rounded-lg px-3 py-2.5 mb-4">
             Dokumen {{ session('saved') }} berhasil disimpan.
@@ -164,9 +181,16 @@
             </div>
         </div>
 
-        <div class="flex justify-end gap-2">
-            <a href="{{ route('documents.index') }}" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">Batal</a>
-            <button type="submit" class="text-sm font-semibold px-5 py-2 rounded-lg bg-ink text-white">Simpan Dokumen</button>
+        <div class="flex justify-between gap-2">
+            @if ($editingId)
+                <button type="button" wire:click="delete" wire:confirm="Yakin mau hapus dokumen ini? Kalau ini nge-link ke opty, checklist Next Action terkait ikut ke-uncheck otomatis." class="text-sm font-semibold px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">Hapus Dokumen</button>
+            @else
+                <span></span>
+            @endif
+            <div class="flex gap-2">
+                <a href="{{ route('documents.index') }}" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">Batal</a>
+                <button type="submit" class="text-sm font-semibold px-5 py-2 rounded-lg bg-ink text-white">Simpan Dokumen</button>
+            </div>
         </div>
     </form>
 </div>
