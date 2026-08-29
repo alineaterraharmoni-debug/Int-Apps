@@ -33,12 +33,17 @@
 
         .terms-box { border: 1px solid #999; padding: 8px 10px; margin-top: 18px; font-size: 9px; }
         .terms-box .title { font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
-        .terms-content { white-space: pre-line; line-height: 1.5; }
+        .terms-content { line-height: 1.5; }
+        .terms-line { width: 100%; margin-bottom: 3px; }
+        .terms-line td { border: none !important; padding: 0 !important; font-size: 9px; }
+        .terms-num { width: 14px; vertical-align: top; }
+        .terms-text { vertical-align: top; white-space: pre-line; }
 
-        .sign-table { margin-top: 26px; }
+        .sign-table { margin-top: 26px; width: 100%; }
         .sign-table td { width: 50%; font-size: 10px; vertical-align: top; }
         .sign-space { height: 55px; }
         .sign-name { font-weight: bold; border-top: 1px solid #333; padding-top: 3px; display: inline-block; min-width: 160px; }
+        .sign-title { font-size: 9px; color: #444; }
     </style>
 </head>
 <body>
@@ -94,6 +99,7 @@
                     <table class="recipient-table">
                         <tr><td class="recipient-label">Nama Perusahaan</td><td>: {{ $doc->customer?->name }}</td></tr>
                         @if ($doc->contact_name)<tr><td class="recipient-label">Contact Name</td><td>: {{ $doc->contact_name }}</td></tr>@endif
+                        @if ($doc->customer?->address)<tr><td class="recipient-label"></td><td>{{ $doc->customer->address }}</td></tr>@endif
                     </table>
                 </td>
             </tr>
@@ -112,8 +118,11 @@
             @if ($doc->contact_name)
                 <tr><td class="recipient-label">Contact Name</td><td>: {{ $doc->contact_name }}</td></tr>
             @endif
-            @if ($doc->type === 'po' && $doc->vendor?->address)
-                <tr><td class="recipient-label"></td><td>{{ $doc->vendor->address }}</td></tr>
+            @php
+                $recipientAddress = $doc->type === 'po' ? $doc->vendor?->address : $doc->customer?->address;
+            @endphp
+            @if ($recipientAddress)
+                <tr><td class="recipient-label"></td><td>{{ $recipientAddress }}</td></tr>
             @endif
         </table>
 
@@ -138,17 +147,22 @@
                 @endif
                 <th>Description</th>
                 <th style="width: 8%;">Qty</th>
-                <th style="width: 12%;">Credits Required</th>
+                @if ($doc->type !== 'bast' && $doc->has_credits)
+                    <th style="width: 12%;">Credits Required</th>
+                @endif
                 <th style="width: 15%;">Unit Price</th>
                 <th style="width: 15%;">Amount</th>
             </tr>
         </thead>
         <tbody>
-            @php $rowNum = 1; $lastGroup = null; @endphp
+            @php
+                $colCount = 5 + ($doc->type === 'po' ? 1 : 0) + ($doc->type !== 'bast' && $doc->has_credits ? 1 : 0);
+                $rowNum = 1; $lastGroup = null;
+            @endphp
             @foreach ($doc->items as $item)
                 @if ($item->group_label && $item->group_label !== $lastGroup)
                     <tr class="group-row">
-                        <td colspan="{{ $doc->type === 'po' ? 6 : 5 }}">{{ $item->group_label }}</td>
+                        <td colspan="{{ $colCount }}">{{ $item->group_label }}</td>
                     </tr>
                     @php $lastGroup = $item->group_label; @endphp
                 @endif
@@ -164,14 +178,16 @@
                         @endif
                     </td>
                     <td class="num">{{ rtrim(rtrim(number_format($item->qty, 2), '0'), '.') }}{{ $item->unit ? ' '.$item->unit : '' }}</td>
-                    <td class="num">{{ $item->credits_required ?? '-' }}</td>
+                    @if ($doc->type !== 'bast' && $doc->has_credits)
+                        <td class="num">{{ $item->credits_required ?? '-' }}</td>
+                    @endif
                     <td class="money">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
                     <td class="money">Rp {{ number_format($item->amount, 0, ',', '.') }}</td>
                 </tr>
             @endforeach
             <tr class="total-row">
-                <td colspan="{{ $doc->type === 'po' ? 5 : 4 }}" style="text-align: right; border: none;">Total</td>
-                <td class="money" style="border: none;" colspan="{{ $doc->type === 'po' ? 1 : 2 }}">Rp {{ number_format($doc->total, 0, ',', '.') }}</td>
+                <td colspan="{{ $colCount - 1 }}" style="text-align: right; border: none;">Total</td>
+                <td class="money" style="border: none;">Rp {{ number_format($doc->total, 0, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>
@@ -179,7 +195,20 @@
     @if ($doc->terms)
         <div class="terms-box">
             <div class="title">{{ $doc->type === 'po' ? 'Catatan' : 'Terms and Condition' }} :</div>
-            <div class="terms-content">{{ $doc->terms }}</div>
+            <div class="terms-content">
+                @foreach ($doc->terms_lines as $line)
+                    @if ($line['num'])
+                        <table class="terms-line">
+                            <tr>
+                                <td class="terms-num">{{ $line['num'] }}.</td>
+                                <td class="terms-text">{{ $line['text'] }}</td>
+                            </tr>
+                        </table>
+                    @else
+                        <div class="terms-line" style="margin-bottom: 3px;">{{ $line['text'] }}</div>
+                    @endif
+                @endforeach
+            </div>
         </div>
     @endif
 
@@ -190,13 +219,14 @@
                     <div>Pihak Pertama,</div>
                     <div class="sign-space"></div>
                     <div class="sign-name">{{ $doc->signatory_name }}</div><br>
-                    <span style="font-size: 9px;">PT. Alinea Terra Harmoni</span>
+                    <span class="sign-title">PT. Alinea Terra Harmoni</span>
+                    @if ($doc->signatory_title)<br><span class="sign-title">{{ $doc->signatory_title }}</span>@endif
                 </td>
                 <td>
                     <div>Pihak Kedua,</div>
                     <div class="sign-space"></div>
-                    <div class="sign-name">{{ $doc->contact_name ?: '________________' }}</div><br>
-                    <span style="font-size: 9px;">{{ $doc->customer?->name }}</span>
+                    <div class="sign-name">{{ $doc->contact_name ?: ($doc->customer?->name ?: '________________') }}</div><br>
+                    <span class="sign-title">{{ $doc->customer?->name }}</span>
                 </td>
             </tr>
         </table>
@@ -205,7 +235,7 @@
             <b>Disetujui oleh PT. Alinea Terra Harmoni</b>
             <div class="sign-space"></div>
             <div class="sign-name">{{ $doc->signatory_name }}</div><br>
-            <span style="font-size: 9px;">Business Development</span>
+            <span class="sign-title">{{ $doc->signatory_title ?: 'Business Development' }}</span>
         </div>
     @else
         <table class="sign-table">
@@ -213,8 +243,8 @@
                 <td>
                     <div>Accepted by,</div>
                     <div class="sign-space"></div>
-                    <div class="sign-name">{{ $doc->contact_name ?: '________________' }}</div><br>
-                    <span style="font-size: 9px;">{{ $doc->customer?->name }}</span>
+                    <div class="sign-name">{{ $doc->contact_name ?: ($doc->customer?->name ?: '________________') }}</div><br>
+                    <span class="sign-title">{{ $doc->customer?->name }}</span>
                 </td>
                 <td>
                     <div>Regards,</div>
@@ -223,7 +253,8 @@
                     @endif
                     <div class="sign-space"></div>
                     <div class="sign-name">{{ $doc->signatory_name }}</div><br>
-                    <span style="font-size: 9px;">PT. Alinea Terra Harmoni</span>
+                    <span class="sign-title">PT. Alinea Terra Harmoni</span>
+                    @if ($doc->type === 'invoice' && $doc->signatory_title)<br><span class="sign-title">{{ $doc->signatory_title }}</span>@endif
                 </td>
             </tr>
         </table>

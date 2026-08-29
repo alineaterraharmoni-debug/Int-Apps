@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Vendor;
 use App\Support\DocumentTerms;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -15,8 +16,11 @@ class DocumentForm extends Component
 {
     public ?int $editingId = null;
     public string $type = 'quotation';
-    public string $status = 'draft';
     public ?string $number = null;
+    // Nomor auto-generate ngikutin tanggal+jenis SELAMA user belum ngedit
+    // manual. Begitu user ngetik langsung di field Nomor, flag ini jadi true
+    // dan auto-regenerate berhenti nimpa apa yang udah diketik.
+    public bool $numberManuallyEdited = false;
     public string $doc_date;
 
     public ?int $opportunity_id = null;
@@ -30,6 +34,7 @@ class DocumentForm extends Component
 
     public string $terms = '';
     public string $signatory_name = 'Teddy Syach';
+    public string $signatory_title = '';
 
     public array $items = [];
 
@@ -41,8 +46,10 @@ class DocumentForm extends Component
             $doc = Document::with('items')->findOrFail($id);
             $this->editingId = $doc->id;
             $this->type = $doc->type;
-            $this->status = $doc->status;
             $this->number = $doc->number;
+            // Dokumen yang UDAH ADA nomornya jangan di-regenerate diem-diem
+            // cuma gara-gara tanggalnya diubah pas edit.
+            $this->numberManuallyEdited = true;
             $this->doc_date = $doc->doc_date->toDateString();
             $this->opportunity_id = $doc->opportunity_id;
             $this->customer_id = $doc->customer_id;
@@ -53,6 +60,7 @@ class DocumentForm extends Component
             $this->ref_invoice_number = $doc->ref_invoice_number ?? '';
             $this->terms = $doc->terms ?? '';
             $this->signatory_name = $doc->signatory_name;
+            $this->signatory_title = $doc->signatory_title ?? '';
             $this->items = $doc->items->map(fn ($i) => [
                 'group_label' => $i->group_label,
                 'product_type' => $i->product_type,
@@ -65,20 +73,72 @@ class DocumentForm extends Component
         } else {
             $this->type = in_array($type, array_keys(Document::TYPES)) ? $type : 'quotation';
             $this->terms = DocumentTerms::default($this->type);
+            $this->number = Document::generateNumber($this->type, $this->doc_date);
             $this->addItem();
         }
+    }
+
+    // Tanggal diubah -> nomor ikut nyesuain bulan/tahunnya (SELAMA belum
+    // diedit manual sama user).
+    public function updatedDocDate(): void
+    {
+        if (! $this->numberManuallyEdited && ! $this->editingId) {
+            $this->number = Document::generateNumber($this->type, $this->doc_date);
+        }
+    }
+
+    // User ngetik langsung di field nomor -> stop auto-regenerate.
+    public function updatedNumber(): void
+    {
+        $this->numberManuallyEdited = true;
+    }
+
+    public function updatedCustomerId(): void
+    {
+        $this->contact_name = '';
+    }
+
+    public function updatedVendorId(): void
+    {
+        $this->contact_name = '';
     }
 
     public function render()
     {
         return view('livewire.document-form', [
             'types' => Document::TYPES,
-            'customers' => Customer::orderBy('name')->get(),
-            'vendors' => Vendor::orderBy('name')->get(),
-            'opportunities' => Opportunity::with('customer')->orderByDesc('created_at')->limit(100)->get(),
-            'previewNumber' => $this->number ?? Document::generateNumber($this->type),
-            'grandTotal' => $this->calculateTotal(),
+            'customers' => Customer::orderBy('name')->get(['id', 'name']),
+            'vendors' => Vendor::orderBy('name')->get(['id', 'name']),
+            'opportunities' => Opportunity::with('customer:id,name')->orderByDesc('created_at')->limit(150)->get(['id', 'title', 'customer_id']),
+            'contactOptions' => $this->contactOptions(),
         ]);
+    }
+
+    /**
+     * Kontak yang bisa dipilih buat "Contact Name" — narik dari data
+     * Customer (pic_name, satu doang) atau Vendor (contacts[], bisa banyak).
+     * Selalu ada opsi kosong di awal buat "gak ada PIC".
+     */
+    private function contactOptions(): array
+    {
+        if ($this->type === 'po' && $this->vendor_id) {
+            $vendor = Vendor::find($this->vendor_id);
+
+            return collect($vendor?->contacts ?? [])
+                ->pluck('name')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        if ($this->type !== 'po' && $this->customer_id) {
+            $customer = Customer::find($this->customer_id);
+
+            return $customer?->pic_name ? [$customer->pic_name] : [];
+        }
+
+        return [];
     }
 
     public function addItem(): void
@@ -112,6 +172,14 @@ class DocumentForm extends Component
         }
     }
 
+    // Dipanggil dari typeahead Opty di blade — gabungin set id + auto-isi
+    // customer jadi satu network call, bukan dua terpisah.
+    public function pickOpportunity(?int $id): void
+    {
+        $this->opportunity_id = $id;
+        $this->selectOpportunity();
+    }
+
     private function calculateTotal(): float
     {
         return collect($this->items)->sum(fn ($i) => (float) ($i['qty'] ?? 0) * (float) ($i['unit_price'] ?? 0));
@@ -119,46 +187,55 @@ class DocumentForm extends Component
 
     public function save(): void
     {
+        $this->persist('final');
+    }
+
+    public function saveDraft(): void
+    {
+        $this->persist('draft');
+    }
+
+    private function persist(string $status): void
+    {
         $rules = [
             'type' => 'required|in:quotation,invoice,po,bast',
-            'status' => 'required|in:draft,final',
+            'number' => ['required', 'string', 'max:100', Rule::unique('documents', 'number')->ignore($this->editingId)],
             'doc_date' => 'required|date',
             'contact_name' => 'nullable|string|max:150',
             'terms' => 'nullable|string',
             'signatory_name' => 'required|string|max:150',
+            'signatory_title' => 'nullable|string|max:100',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
             'items.*.qty' => 'required|numeric|min:0',
             'items.*.unit_price' => 'required|numeric|min:0',
         ];
 
-        if ($this->type === 'po') {
-            $rules['vendor_id'] = 'required|exists:vendors,id';
-        } else {
-            $rules['customer_id'] = 'required|exists:customers,id';
-        }
+        // PO tetep ditujukan ke Vendor, tapi Customer terkait (siapa yang
+        // butuh barang ini) SEKARANG ikut disimpen juga — sebelumnya PO
+        // gak nyimpen customer_id sama sekali (dikosongin paksa).
+        $rules['vendor_id'] = $this->type === 'po' ? 'required|exists:vendors,id' : 'nullable|exists:vendors,id';
+        $rules['customer_id'] = $this->type !== 'po' ? 'required|exists:customers,id' : 'nullable|exists:customers,id';
 
-        $data = $this->validate($rules);
+        $data = $this->validate($rules, [], [
+            'number' => 'Nomor Dokumen',
+            'vendor_id' => 'Vendor',
+            'customer_id' => 'Customer',
+        ]);
 
-        $data['number'] = $this->number ?? Document::generateNumber($this->type);
+        $data['status'] = $status;
         $data['total'] = $this->calculateTotal();
         $data['opportunity_id'] = $this->opportunity_id;
         $data['ref_quotation_number'] = $this->ref_quotation_number ?: null;
         $data['ref_po_number'] = $this->ref_po_number ?: null;
         $data['ref_invoice_number'] = $this->ref_invoice_number ?: null;
-
-        if ($this->type !== 'po') {
-            $data['vendor_id'] = null;
-        } else {
-            $data['customer_id'] = null;
-        }
+        $data['signatory_title'] = $this->signatory_title ?: null;
 
         unset($data['items']);
 
         // Kalau lagi edit dan opty/jenis dokumennya DIGANTI, checklist Next
-        // Action di opty yang LAMA perlu di-re-sync juga (kemungkinan balik
-        // ke uncheck kalau gak ada dokumen final lain dari jenis yang sama).
-        // Opty yang BARU otomatis ke-sync sendiri lewat event 'saved' di model.
+        // Action di opty yang LAMA perlu di-re-sync juga. Opty yang BARU
+        // otomatis ke-sync sendiri lewat event 'saved' di model.
         $oldOpportunityId = null;
         $oldType = null;
         if ($this->editingId) {
@@ -191,8 +268,9 @@ class DocumentForm extends Component
             $doc->syncOpportunityChecklist($oldOpportunityId, $oldType);
         }
 
-        session()->flash('saved', $doc->number);
-        $this->redirect(route('documents.edit', $doc->id), navigate: false);
+        // Balik ke List, langsung ke-filter ke jenis dokumen yang baru
+        // disimpen (misal abis bikin Quotation, balik ke tab Quotation).
+        $this->redirect(route('documents.index', ['type' => $doc->type]), navigate: false);
     }
 
     public function delete(): void
@@ -205,9 +283,9 @@ class DocumentForm extends Component
             return;
         }
 
+        $type = $this->type;
         Document::findOrFail($this->editingId)->delete();
 
-        session()->flash('deleted', true);
-        $this->redirect(route('documents.index'), navigate: false);
+        $this->redirect(route('documents.index', ['type' => $type]), navigate: false);
     }
 }

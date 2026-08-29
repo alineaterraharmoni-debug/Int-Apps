@@ -15,6 +15,16 @@ class DocumentList extends Component
     public string $typeFilter = '';
     public string $statusFilter = '';
     public string $search = '';
+    public ?string $dateFrom = null;
+    public ?string $dateTo = null;
+    public bool $showFilters = false;
+
+    public function mount(): void
+    {
+        // Abis save dari form, balik ke sini udah langsung ke-filter ke
+        // jenis dokumen yang baru disimpen (?type=quotation dst).
+        $this->typeFilter = request()->get('type', '');
+    }
 
     public function updatingTypeFilter(): void
     {
@@ -31,6 +41,22 @@ class DocumentList extends Component
         $this->resetPage();
     }
 
+    public function updatingDateFrom(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingDateTo(): void
+    {
+        $this->resetPage();
+    }
+
+    public function resetListFilters(): void
+    {
+        $this->reset(['statusFilter', 'dateFrom', 'dateTo']);
+        $this->resetPage();
+    }
+
     public function render()
     {
         // select() cuma narik kolom yang beneran kepake di list (bukan
@@ -41,6 +67,8 @@ class DocumentList extends Component
             ->with(['customer:id,name', 'vendor:id,name'])
             ->when($this->typeFilter, fn ($q, $v) => $q->where('type', $v))
             ->when($this->statusFilter, fn ($q, $v) => $q->where('status', $v))
+            ->when($this->dateFrom, fn ($q, $v) => $q->whereDate('doc_date', '>=', $v))
+            ->when($this->dateTo, fn ($q, $v) => $q->whereDate('doc_date', '<=', $v))
             ->when($this->search, function ($q, $v) {
                 $q->where(function ($qq) use ($v) {
                     $qq->where('number', 'like', "%{$v}%")

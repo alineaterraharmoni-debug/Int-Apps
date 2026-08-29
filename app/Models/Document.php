@@ -11,7 +11,7 @@ class Document extends Model
     protected $fillable = [
         'type', 'status', 'number', 'doc_date', 'opportunity_id', 'customer_id', 'vendor_id',
         'contact_name', 'ref_quotation_number', 'ref_po_number', 'ref_invoice_number',
-        'terms', 'signatory_name', 'total',
+        'terms', 'signatory_name', 'signatory_title', 'total',
     ];
 
     protected $casts = [
@@ -129,13 +129,68 @@ class Document extends Model
 
     /**
      * Generate nomor dokumen sesuai pola existing Alinea: 006-QUO/AD/05/26
-     * Sequence auto-increment per jenis dokumen (bukan reset tiap bulan).
+     * Sekarang PER-BULAN-PER-TAHUN (bukan running total sepanjang waktu) —
+     * ngikutin tanggal yang diisi di form ($docDate), bukan tanggal hari ini.
+     * Nyari angka urut TERKECIL yang belum kepake buat kombinasi jenis+bulan+
+     * tahun itu, jadi kalau ada nomor yang diubah manual (misal 003), nomor
+     * otomatis berikutnya bakal ngisi gap yang masih kosong dulu (002) baru
+     * lompat ke abis yang udah kepake (004).
      */
-    public static function generateNumber(string $type): string
+    public static function generateNumber(string $type, ?string $docDate = null): string
     {
-        $seq = self::where('type', $type)->count() + 1;
+        $date = $docDate ? \Illuminate\Support\Carbon::parse($docDate) : now();
+        $month = $date->format('m');
+        $year = $date->format('y');
         $code = self::TYPE_CODE[$type] ?? strtoupper($type);
+        $suffix = sprintf('-%s/AD/%s/%s', $code, $month, $year);
 
-        return sprintf('%03d-%s/AD/%s/%s', $seq, $code, now()->format('m'), now()->format('y'));
+        $usedSeqs = self::where('type', $type)
+            ->where('number', 'like', '%'.$suffix)
+            ->pluck('number')
+            ->map(function ($n) use ($suffix) {
+                $prefix = \Illuminate\Support\Str::before($n, $suffix);
+
+                return (int) $prefix;
+            })
+            ->all();
+
+        $seq = 1;
+        while (in_array($seq, $usedSeqs, true)) {
+            $seq++;
+        }
+
+        return sprintf('%03d%s', $seq, $suffix);
+    }
+
+    /**
+     * Parse terms jadi baris-baris terstruktur (nomor + teks kepisah), biar
+     * di PDF bisa dirender pake hanging-indent yang rapi — sebelumnya teks
+     * panjang yang wrap ke baris ke-2 nempel rata kiri, keliatan kayak mulai
+     * poin baru padahal masih poin yang sama.
+     */
+    public function getTermsLinesAttribute(): array
+    {
+        if (! $this->terms) {
+            return [];
+        }
+
+        return collect(explode("\n", $this->terms))
+            ->map(function ($line) {
+                $line = rtrim($line);
+                if (preg_match('/^\s*(\d+)\.\s*(.*)$/', $line, $m)) {
+                    return ['num' => $m[1], 'text' => $m[2]];
+                }
+
+                return ['num' => null, 'text' => $line];
+            })
+            ->all();
+    }
+
+    // Kolom Credit di tabel item PDF cuma ditampilin kalau MINIMAL SATU item
+    // beneran isi credits_required — kalau semua item cuma pake Unit biasa,
+    // kolom Credit disembunyiin total biar tabel gak ada kolom kosong.
+    public function getHasCreditsAttribute(): bool
+    {
+        return $this->items->contains(fn ($i) => $i->credits_required !== null && $i->credits_required !== '');
     }
 }

@@ -34,10 +34,7 @@
     @endif
 
     {{-- Tab jenis dokumen — "kerasa" kepisah kayak dashboard sendiri-sendiri,
-         padahal masih 1 tabel/1 halaman di baliknya. Dipilih ketimbang bikin
-         4 menu terpisah, soalnya dokumen-dokumen ini saling ke-link satu sama
-         lain (nomor referensi Quotation->PO->Invoice), jadi lebih kepake
-         kalau tetep bisa diliat dalam satu alur/timeline yang sama. --}}
+         padahal masih 1 tabel/1 halaman di baliknya. --}}
     <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-sm mb-4 flex-wrap">
         <button wire:click="$set('typeFilter', '')" class="px-3 py-1.5 rounded-md font-medium whitespace-nowrap {{ $typeFilter === '' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">Semua</button>
         @foreach ($types as $val => $label)
@@ -45,21 +42,46 @@
         @endforeach
     </div>
 
-    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div class="sm:col-span-2">
-            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Cari nomor / nama customer / vendor</label>
-            <input type="text" wire:model.live.debounce.400ms="search" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
-        </div>
-        <div>
-            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Status</label>
-            <select wire:model.live="statusFilter" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
-                <option value="">Semua</option>
-                @foreach ($statuses as $val => $label)
-                    <option value="{{ $val }}">{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
+    <div class="flex items-center gap-2 mb-4">
+        <input type="text" wire:model.live.debounce.400ms="search" placeholder="Cari nomor / nama customer / vendor..." class="flex-1 min-w-0 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2.5 text-sm">
+        @php $activeFilterCount = collect([$statusFilter, $dateFrom, $dateTo])->filter()->count(); @endphp
+        <button wire:click="$toggle('showFilters')" class="relative shrink-0 inline-flex items-center gap-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 {{ $showFilters ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+            <x-icon name="sliders" class="w-4 h-4" />
+            <span class="hidden sm:inline">Filter</span>
+            @if ($activeFilterCount)
+                <span class="absolute -top-1.5 -right-1.5 bg-sky text-navy text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{{ $activeFilterCount }}</span>
+            @endif
+        </button>
     </div>
+
+    @if ($showFilters)
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-4 grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Dari Tanggal</label>
+                <input type="date" wire:model.live="dateFrom" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Sampai Tanggal</label>
+                <input type="date" wire:model.live="dateTo" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Status</label>
+                <select wire:model.live="statusFilter" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-2 text-sm">
+                    <option value="">Semua</option>
+                    @foreach ($statuses as $val => $label)
+                        <option value="{{ $val }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @if ($activeFilterCount)
+                <div class="col-span-2 md:col-span-3">
+                    <button wire:click="resetListFilters" class="inline-flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-600">
+                        <x-icon name="x" class="w-3 h-3" /> Reset filter
+                    </button>
+                </div>
+            @endif
+        </div>
+    @endif
 
     {{-- Tabel di tablet/desktop --}}
     <div class="hidden md:block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-x-auto">
@@ -92,12 +114,14 @@
                         <td class="p-3 text-gray-500 dark:text-gray-400">{{ $doc->doc_date->translatedFormat('d M Y') }}</td>
                         <td class="p-3">{{ $doc->recipient_name ?? '—' }}</td>
                         <td class="p-3 font-mono">Rp {{ number_format($doc->total, 0, ',', '.') }}</td>
-                        <td class="p-3 text-right space-x-3 whitespace-nowrap">
-                            <a href="{{ route('documents.pdf', $doc->id) }}" target="_blank" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:hover:text-white">PDF</a>
-                            @if ($canManage)
-                                <a href="{{ route('documents.edit', $doc->id) }}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:hover:text-white">Edit</a>
-                                <button wire:click="delete({{ $doc->id }})" wire:confirm="Yakin mau hapus dokumen {{ $doc->number }}? Kalau ini nge-link ke opty, checklist Next Action terkait ikut ke-uncheck otomatis." class="text-xs font-semibold text-red-500 hover:text-red-600">Hapus</button>
-                            @endif
+                        <td class="p-3 text-right">
+                            <div class="inline-flex items-center gap-1.5">
+                                <a href="{{ route('documents.pdf', $doc->id) }}" target="_blank" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">PDF</a>
+                                @if ($canManage)
+                                    <a href="{{ route('documents.edit', $doc->id) }}" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-sky/30 text-sky hover:bg-sky/5">Edit</a>
+                                    <button wire:click="delete({{ $doc->id }})" wire:confirm="Yakin mau hapus dokumen {{ $doc->number }}? Kalau ini nge-link ke opty, checklist Next Action terkait ikut ke-uncheck otomatis." class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">Hapus</button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty
@@ -125,11 +149,11 @@
                 </div>
                 <div class="text-sm mb-1">{{ $doc->recipient_name ?? '—' }}</div>
                 <div class="font-mono font-semibold text-sm mb-3">Rp {{ number_format($doc->total, 0, ',', '.') }}</div>
-                <div class="flex items-center gap-3">
-                    <a href="{{ route('documents.pdf', $doc->id) }}" target="_blank" class="text-xs font-semibold text-gray-600 dark:text-gray-300">PDF</a>
+                <div class="flex items-center gap-1.5">
+                    <a href="{{ route('documents.pdf', $doc->id) }}" target="_blank" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">PDF</a>
                     @if ($canManage)
-                        <a href="{{ route('documents.edit', $doc->id) }}" class="text-xs font-semibold text-sky">Edit</a>
-                        <button wire:click="delete({{ $doc->id }})" wire:confirm="Yakin mau hapus dokumen {{ $doc->number }}? Kalau ini nge-link ke opty, checklist Next Action terkait ikut ke-uncheck otomatis." class="text-xs font-semibold text-red-500">Hapus</button>
+                        <a href="{{ route('documents.edit', $doc->id) }}" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-sky/30 text-sky">Edit</a>
+                        <button wire:click="delete({{ $doc->id }})" wire:confirm="Yakin mau hapus dokumen {{ $doc->number }}? Kalau ini nge-link ke opty, checklist Next Action terkait ikut ke-uncheck otomatis." class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-500/30 text-rose-500">Hapus</button>
                     @endif
                 </div>
             </div>

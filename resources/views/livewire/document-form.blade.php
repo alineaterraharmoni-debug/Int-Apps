@@ -3,31 +3,13 @@
         <div>
             <div class="text-xs font-mono uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">Dokumen</div>
             <h1 class="font-display font-extrabold text-xl md:text-2xl">{{ $editingId ? 'Edit' : 'Buat' }} {{ $types[$type] }}</h1>
-            <div class="text-xs font-mono text-gray-400 dark:text-gray-500 mt-1">Nomor: {{ $previewNumber }}</div>
         </div>
         @if ($editingId)
-            <a href="{{ route('documents.pdf', $editingId) }}" target="_blank" class="bg-ink text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-gray-800">
+            <a href="{{ route('documents.pdf', $editingId) }}" target="_blank" class="bg-ink text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-gray-800 border border-ink">
                 Download PDF
             </a>
         @endif
     </div>
-
-    {{-- Toggle Draft/Final — Draft SENGAJA gak ngecentang checklist Next
-         Action di opty terkait (belum "beneran jadi"), baru pas Final
-         checklist-nya otomatis ke-centang. --}}
-    <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-sm mb-4">
-        <button type="button" wire:click="$set('status', 'draft')" class="px-3 py-1.5 rounded-md font-medium {{ $status === 'draft' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">
-            Draft
-        </button>
-        <button type="button" wire:click="$set('status', 'final')" class="px-3 py-1.5 rounded-md font-medium {{ $status === 'final' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">
-            Final
-        </button>
-    </div>
-    @if ($status === 'draft')
-        <p class="text-[11px] text-gray-400 dark:text-gray-500 -mt-3 mb-4">
-            Dokumen masih Draft belum ngecentang checklist Next Action di opty terkait — ganti ke Final kalau udah beneran jadi/dikirim.
-        </p>
-    @endif
 
     @if (session('saved'))
         <div class="bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm rounded-lg px-3 py-2.5 mb-4">
@@ -41,52 +23,146 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Tanggal</label>
-                    <input type="date" wire:model="doc_date" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                    <input type="date" wire:model.live="doc_date" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                     @error('doc_date') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Link ke Opty (opsional)</label>
-                    <select wire:model="opportunity_id" wire:change="selectOpportunity" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
-                        <option value="">— gak dilink —</option>
-                        @foreach ($opportunities as $o)
-                            <option value="{{ $o->id }}">{{ $o->title }} ({{ $o->customer?->name }})</option>
-                        @endforeach
-                    </select>
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
+                        Nomor Dokumen
+                        <span class="font-normal text-gray-400">(otomatis, bisa diubah manual)</span>
+                    </label>
+                    <input type="text" wire:model="number" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm font-mono">
+                    @error('number') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Link ke Opty (opsional)</label>
+                <div
+                    class="relative"
+                    x-data="{
+                        open: false,
+                        q: {{ \Illuminate\Support\Js::from($opportunity_id ? optional($opportunities->firstWhere('id', $opportunity_id))->title : '') }},
+                        items: {{ \Illuminate\Support\Js::from($opportunities->map(fn ($o) => ['id' => $o->id, 'title' => $o->title.' ('.($o->customer?->name ?? '-').')'])->values()) }},
+                        get filtered() {
+                            if (! this.q) return this.items;
+                            const s = this.q.toLowerCase();
+                            return this.items.filter(o => o.title.toLowerCase().includes(s));
+                        },
+                        pick(o) { this.q = o.title; this.open = false; $wire.pickOpportunity(o.id); }
+                    }"
+                    x-on:click.outside="open = false"
+                >
+                    <input type="text" x-model="q" x-on:focus="open = true"
+                           x-on:input="open = true; $wire.pickOpportunity(null)"
+                           placeholder="Cari opty... (kosongin kalau gak dilink)" autocomplete="off"
+                           class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                    <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                        <template x-for="o in filtered" :key="o.id">
+                            <div x-on:click="pick(o)" x-text="o.title" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
+                        </template>
+                        <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Gak ketemu.</div>
+                    </div>
                 </div>
             </div>
 
             @if ($type === 'po')
+                {{-- PO tetep ditujukan ke Vendor, tapi Customer terkait (siapa yang
+                     butuh barang ini) sekarang ikut disimpen juga — sebelumnya PO
+                     gak nyimpen data customer sama sekali. --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Vendor / Distributor</label>
-                        <select wire:model="vendor_id" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
-                            <option value="">— pilih vendor —</option>
-                            @foreach ($vendors as $v)
-                                <option value="{{ $v->id }}">{{ $v->name }}</option>
-                            @endforeach
-                        </select>
+                        <div
+                            class="relative"
+                            x-data="{
+                                open: false,
+                                q: {{ \Illuminate\Support\Js::from($vendor_id ? optional($vendors->firstWhere('id', $vendor_id))->name : '') }},
+                                items: {{ \Illuminate\Support\Js::from($vendors->map(fn ($v) => ['id' => $v->id, 'name' => $v->name])->values()) }},
+                                get filtered() {
+                                    if (! this.q) return this.items;
+                                    const s = this.q.toLowerCase();
+                                    return this.items.filter(v => v.name.toLowerCase().includes(s));
+                                },
+                                pick(v) { this.q = v.name; this.open = false; $wire.set('vendor_id', v.id); }
+                            }"
+                            x-on:click.outside="open = false"
+                        >
+                            <input type="text" x-model="q" x-on:focus="open = true"
+                                   x-on:input="open = true; $wire.set('vendor_id', null)"
+                                   placeholder="Cari vendor..." autocomplete="off"
+                                   class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                            <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                                <template x-for="v in filtered" :key="v.id">
+                                    <div x-on:click="pick(v)" x-text="v.name" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
+                                </template>
+                                <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Gak ketemu.</div>
+                            </div>
+                        </div>
                         @error('vendor_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Contact Person Vendor</label>
-                        <input type="text" wire:model="contact_name" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Customer Terkait</label>
+                        <select wire:model.live="customer_id" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                            <option value="">— gak dilink —</option>
+                            @foreach ($customers as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Contact Person Vendor</label>
+                    <select wire:model="contact_name" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                        <option value="">— gak ada PIC —</option>
+                        @foreach ($contactOptions as $opt)
+                            <option value="{{ $opt }}">{{ $opt }}</option>
+                        @endforeach
+                    </select>
+                    @if (empty($contactOptions) && $vendor_id)
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Vendor ini belum ada data kontak — tambahin di menu Vendor kalau perlu.</p>
+                    @endif
                 </div>
             @else
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Customer</label>
-                        <select wire:model="customer_id" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
-                            <option value="">— pilih customer —</option>
-                            @foreach ($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->name }}</option>
-                            @endforeach
-                        </select>
+                        <div
+                            class="relative"
+                            x-data="{
+                                open: false,
+                                q: {{ \Illuminate\Support\Js::from($customer_id ? optional($customers->firstWhere('id', $customer_id))->name : '') }},
+                                items: {{ \Illuminate\Support\Js::from($customers->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->values()) }},
+                                get filtered() {
+                                    if (! this.q) return this.items;
+                                    const s = this.q.toLowerCase();
+                                    return this.items.filter(c => c.name.toLowerCase().includes(s));
+                                },
+                                pick(c) { this.q = c.name; this.open = false; $wire.set('customer_id', c.id); }
+                            }"
+                            x-on:click.outside="open = false"
+                        >
+                            <input type="text" x-model="q" x-on:focus="open = true"
+                                   x-on:input="open = true; $wire.set('customer_id', null)"
+                                   placeholder="Cari customer..." autocomplete="off"
+                                   class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                            <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                                <template x-for="c in filtered" :key="c.id">
+                                    <div x-on:click="pick(c)" x-text="c.name" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
+                                </template>
+                                <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Gak ketemu.</div>
+                            </div>
+                        </div>
                         @error('customer_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Contact Person Customer</label>
-                        <input type="text" wire:model="contact_name" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                        <select wire:model="contact_name" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                            <option value="">— gak ada PIC —</option>
+                            @foreach ($contactOptions as $opt)
+                                <option value="{{ $opt }}">{{ $opt }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
             @endif
@@ -115,8 +191,12 @@
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
             <div class="flex items-center justify-between mb-3">
                 <div class="font-display font-bold text-sm">Item</div>
-                <button type="button" wire:click="addItem" class="text-xs font-semibold text-sky">+ Tambah Baris</button>
+                <button type="button" wire:click="addItem" class="text-xs font-semibold text-sky border border-sky/30 rounded-lg px-2.5 py-1.5">+ Tambah Baris</button>
             </div>
+
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
+                Isi Unit ATAU Credits sesuai kebutuhan tiap baris — kalau semua baris cuma pake Unit, kolom Credit gak bakal muncul di PDF. Begitu ada 1 baris aja yang isi Credits, kolom itu otomatis muncul di PDF.
+            </p>
 
             <div class="space-y-3">
                 @foreach ($items as $i => $item)
@@ -164,7 +244,7 @@
             <div class="flex justify-end mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
                 <div class="text-right">
                     <div class="text-xs text-gray-400 dark:text-gray-500">Grand Total</div>
-                    <div class="font-mono font-bold text-lg">Rp {{ number_format($grandTotal, 0, ',', '.') }}</div>
+                    <div class="font-mono font-bold text-lg">Rp {{ number_format(collect($items)->sum(fn ($i) => (float)($i['qty'] ?? 0) * (float)($i['unit_price'] ?? 0)), 0, ',', '.') }}</div>
                 </div>
             </div>
         </div>
@@ -175,21 +255,31 @@
                 <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Terms and Condition</label>
                 <textarea wire:model="terms" rows="6" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm font-mono"></textarea>
             </div>
-            <div>
-                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Nama Penandatangan</label>
-                <input type="text" wire:model="signatory_name" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Nama Penandatangan</label>
+                    <input type="text" wire:model="signatory_name" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Jabatan</label>
+                    <input type="text" wire:model="signatory_title" placeholder="cth. Business Development" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                </div>
             </div>
         </div>
 
-        <div class="flex justify-between gap-2">
+        <div class="flex flex-col sm:flex-row justify-between gap-3">
             @if ($editingId)
-                <button type="button" wire:click="delete" wire:confirm="Yakin mau hapus dokumen ini? Kalau ini nge-link ke opty, checklist Next Action terkait ikut ke-uncheck otomatis." class="text-sm font-semibold px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">Hapus Dokumen</button>
+                <button type="button" wire:click="delete" wire:confirm="Yakin mau hapus dokumen ini? Kalau ini nge-link ke opty, checklist Next Action terkait ikut ke-uncheck otomatis." class="text-sm font-semibold px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 order-2 sm:order-1">Hapus Dokumen</button>
             @else
-                <span></span>
+                <span class="hidden sm:inline"></span>
             @endif
-            <div class="flex gap-2">
-                <a href="{{ route('documents.index') }}" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">Batal</a>
+            <div class="flex flex-col sm:flex-row gap-2 order-1 sm:order-2">
+                <a href="{{ route('documents.index') }}" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-center">Batal</a>
                 <button type="submit" class="text-sm font-semibold px-5 py-2 rounded-lg bg-ink text-white">Simpan Dokumen</button>
+                {{-- "Simpan sebagai Draft" ditaro DI BAWAH tombol utama (bukan
+                     toggle di atas) — Draft gak ngecentang checklist Next
+                     Action di opty terkait, baru Final yang ngecentang. --}}
+                <button type="button" wire:click="saveDraft" class="text-sm font-semibold px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">Simpan sebagai Draft</button>
             </div>
         </div>
     </form>

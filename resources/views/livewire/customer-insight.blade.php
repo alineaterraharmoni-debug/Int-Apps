@@ -112,7 +112,7 @@
                             </button>
                         </td>
                         <td class="p-3 text-right">
-                            <button wire:click="openDetail({{ $c->id }})" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:text-white">Detail</button>
+                            <button wire:click="openDetail({{ $c->id }})" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-sky/30 text-sky hover:bg-sky/5">Detail</button>
                         </td>
                     </tr>
                 @empty
@@ -161,7 +161,7 @@
                         <div class="font-medium">{{ $c->last_won_at ? \Carbon\Carbon::parse($c->last_won_at)->translatedFormat('d M Y') : '—' }}</div>
                     </div>
                 </div>
-                <button wire:click="openDetail({{ $c->id }})" class="text-xs font-semibold text-sky">Lihat Detail →</button>
+                <button wire:click="openDetail({{ $c->id }})" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-sky/30 text-sky">Lihat Detail →</button>
             </div>
         @empty
             <div class="p-8 text-center text-xs text-gray-400 dark:text-gray-500">Belum ada customer{{ $canManage ? '. Klik "+ Customer Baru" buat mulai.' : '.' }}</div>
