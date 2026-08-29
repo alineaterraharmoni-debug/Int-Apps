@@ -42,6 +42,11 @@ class OpportunityBoard extends Component
     public array $missingFieldsNotice = [];
     public string $activeTab = 'info'; // info | stage | tim | catatan
 
+    // ----- View Detail (read-only) — klik nama/kartu opty buka ini dulu,
+    // Edit dipindah jadi tombol DI DALEM popup Detail. -----
+    public bool $showDetailModal = false;
+    public ?int $detailId = null;
+
     #[Validate('required|string|max:150')]
     public string $title = '';
 
@@ -249,12 +254,36 @@ class OpportunityBoard extends Component
             // diisi di form — dipake buat nyaranin di checklist "Cari harga
             // dari Disti/Vendor" (stage Leads), biar sales gak nebak-nebak.
             'suggestedVendors' => Vendor::forCategory($this->category)->orderBy('name')->get(),
+            'detailOpty' => $this->detailId
+                ? Opportunity::with(['customer', 'sales', 'presales', 'engineers'])->find($this->detailId)
+                : null,
         ]);
     }
 
     public function setViewMode(string $mode): void
     {
         $this->viewMode = in_array($mode, ['board', 'list'], true) ? $mode : 'board';
+    }
+
+    // Klik kartu/nama opty -> buka popup View Detail (read-only, siapapun
+    // boleh liat termasuk role view-only). Edit dipindah jadi tombol DI
+    // DALEM popup ini, cuma muncul kalau role-nya emang boleh edit opty itu.
+    public function openDetail(int $id): void
+    {
+        $this->detailId = $id;
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetail(): void
+    {
+        $this->showDetailModal = false;
+        $this->detailId = null;
+    }
+
+    public function editFromDetail(int $id): void
+    {
+        $this->showDetailModal = false;
+        $this->openEdit($id);
     }
 
     private function canManageFull(): bool

@@ -62,7 +62,9 @@
             <tbody>
                 @forelse ($vendors as $v)
                     <tr class="border-b border-gray-50 dark:border-gray-700/60">
-                        <td class="p-3 font-semibold">{{ $v->name }}</td>
+                        <td class="p-3 font-semibold">
+                            <button wire:click="openDetail({{ $v->id }})" class="hover:text-sky hover:underline text-left">{{ $v->name }}</button>
+                        </td>
                         <td class="p-3">
                             @forelse ($v->type ?? [] as $t)
                                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 mr-1 mb-1 inline-block">{{ $categories[$t] ?? $t }}</span>
@@ -83,9 +85,7 @@
                             @endif
                         </td>
                         <td class="p-3 text-right">
-                            @if ($canManage)
-                                <button wire:click="openEdit({{ $v->id }})" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:text-white">Edit</button>
-                            @endif
+                            <button wire:click="openDetail({{ $v->id }})" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:text-white">Detail</button>
                         </td>
                     </tr>
                 @empty
@@ -99,7 +99,7 @@
     <div class="md:hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl divide-y-2 divide-gray-100 dark:divide-gray-700 overflow-hidden">
         @forelse ($vendors as $v)
             <div class="p-3.5">
-                <div class="font-semibold text-sm mb-1.5">{{ $v->name }}</div>
+                <button wire:click="openDetail({{ $v->id }})" class="font-semibold text-sm mb-1.5 block text-left hover:text-sky hover:underline">{{ $v->name }}</button>
                 <div class="mb-1.5">
                     @forelse ($v->type ?? [] as $t)
                         <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 mr-1 mb-1 inline-block">{{ $categories[$t] ?? $t }}</span>
@@ -121,9 +121,7 @@
                         @endif
                     @endif
                 </div>
-                @if ($canManage)
-                    <button wire:click="openEdit({{ $v->id }})" class="text-xs font-semibold text-sky">Edit →</button>
-                @endif
+                <button wire:click="openDetail({{ $v->id }})" class="text-xs font-semibold text-sky">Lihat Detail →</button>
             </div>
         @empty
             <div class="p-8 text-center text-xs text-gray-400 dark:text-gray-500">Belum ada vendor{{ $canManage ? '. Klik "+ Vendor Baru" buat mulai.' : '.' }}</div>
@@ -134,7 +132,67 @@
         {{ $vendors->links() }}
     </div>
 
-    {{-- Modal --}}
+    {{-- Modal View Detail (read-only) — muncul pas klik nama, Edit-nya
+         dipindah jadi tombol DI DALEM sini, bukan lagi tombol lepas. --}}
+    @if ($showDetailModal && $detailVendor)
+        <div class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-4 z-50" wire:click.self="closeDetail">
+            <div class="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-display font-extrabold text-lg">{{ $detailVendor->name }}</h2>
+                    <button wire:click="closeDetail" class="text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 text-xl leading-none">&times;</button>
+                </div>
+
+                <div class="space-y-4 text-sm">
+                    <div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-1">Lini Produk</div>
+                        @forelse ($detailVendor->type ?? [] as $t)
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 mr-1 mb-1 inline-block">{{ $categories[$t] ?? $t }}</span>
+                        @empty
+                            <span class="text-xs text-gray-400 dark:text-gray-500">—</span>
+                        @endforelse
+                    </div>
+
+                    @if ($detailVendor->product_detail)
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-1">Detail Produk</div>
+                            <div>{{ $detailVendor->product_detail }}</div>
+                        </div>
+                    @endif
+
+                    <div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-1.5">Kontak PIC</div>
+                        @forelse ($detailVendor->contacts ?? [] as $c)
+                            <div class="border border-gray-100 dark:border-gray-700 rounded-lg p-2.5 mb-2">
+                                <div class="font-semibold">{{ $c['name'] ?? '—' }}</div>
+                                @if (! empty($c['brand']))
+                                    <div class="text-xs text-sky mb-1">{{ $c['brand'] }}</div>
+                                @endif
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $c['phone'] ?? '' }}{{ ! empty($c['phone']) && ! empty($c['email']) ? ' · ' : '' }}{{ $c['email'] ?? '' }}
+                                </div>
+                            </div>
+                        @empty
+                            <span class="text-xs text-gray-400 dark:text-gray-500">Belum ada kontak ditambahin.</span>
+                        @endforelse
+                    </div>
+
+                    <div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-1">Alamat</div>
+                        <div>{{ $detailVendor->address ?: '—' }}</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-5">
+                    <button wire:click="closeDetail" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">Tutup</button>
+                    @if ($canManage)
+                        <button wire:click="editFromDetail({{ $detailVendor->id }})" class="text-sm font-semibold px-4 py-2 rounded-lg bg-ink text-white">Edit</button>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal Form (create/edit) --}}
     @if ($showModal && $canManage)
         <div class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-4 z-50" wire:click.self="closeModal">
             <div class="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6">

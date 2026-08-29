@@ -23,6 +23,9 @@ class CustomerInsight extends Component
     public bool $showModal = false;
     public ?int $editingId = null;
 
+    public bool $showDetailModal = false;
+    public ?int $detailId = null;
+
     #[Validate('required|string|max:150')]
     public string $name = '';
     #[Validate('nullable|string|max:100')]
@@ -107,7 +110,34 @@ class CustomerInsight extends Component
         return view('livewire.customer-insight', [
             'customers' => $customers->paginate(25),
             'canManage' => $this->canManage(),
+            'detailCustomer' => $this->detailId
+                ? Customer::withCount('opportunities')
+                    ->withSum('opportunities as total_tcv', 'tcv')
+                    ->withSum(['opportunities as total_won' => fn ($q) => $q->where('stage', 'won')], 'tcv')
+                    ->withMax(['opportunities as last_won_at' => fn ($q) => $q->where('stage', 'won')], 'closed_at')
+                    ->find($this->detailId)
+                : null,
         ]);
+    }
+
+    // Klik nama -> buka popup View Detail (read-only, siapapun boleh liat).
+    // Edit sekarang dipindah jadi tombol DI DALEM popup ini.
+    public function openDetail(int $id): void
+    {
+        $this->detailId = $id;
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetail(): void
+    {
+        $this->showDetailModal = false;
+        $this->detailId = null;
+    }
+
+    public function editFromDetail(int $id): void
+    {
+        $this->showDetailModal = false;
+        $this->openEdit($id);
     }
 
     public function toggleFocus(int $id): void

@@ -21,6 +21,9 @@ class VendorManagement extends Component
     public bool $showModal = false;
     public ?int $editingId = null;
 
+    public bool $showDetailModal = false;
+    public ?int $detailId = null;
+
     #[Validate('required|string|max:150')]
     public string $name = '';
 
@@ -79,7 +82,28 @@ class VendorManagement extends Component
             'vendors' => $vendors,
             'categories' => Opportunity::CATEGORIES,
             'canManage' => $this->canManage(),
+            'detailVendor' => $this->detailId ? Vendor::find($this->detailId) : null,
         ]);
+    }
+
+    // Klik nama -> buka popup View Detail (read-only, siapapun boleh liat).
+    // Edit sekarang dipindah jadi tombol DI DALEM popup ini.
+    public function openDetail(int $id): void
+    {
+        $this->detailId = $id;
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetail(): void
+    {
+        $this->showDetailModal = false;
+        $this->detailId = null;
+    }
+
+    public function editFromDetail(int $id): void
+    {
+        $this->showDetailModal = false;
+        $this->openEdit($id);
     }
 
     public function openCreate(): void

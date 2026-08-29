@@ -90,10 +90,12 @@
                 @forelse ($customers as $c)
                     <tr class="border-b border-gray-50 dark:border-gray-700/60">
                         <td class="p-3">
-                            <div class="font-semibold">{{ $c->name }}</div>
-                            @if ($c->industry)
-                                <div class="text-xs text-gray-400 dark:text-gray-500">{{ $c->industry }}</div>
-                            @endif
+                            <button wire:click="openDetail({{ $c->id }})" class="text-left hover:text-sky">
+                                <div class="font-semibold hover:underline">{{ $c->name }}</div>
+                                @if ($c->industry)
+                                    <div class="text-xs text-gray-400 dark:text-gray-500">{{ $c->industry }}</div>
+                                @endif
+                            </button>
                         </td>
                         <td class="p-3 font-mono">{{ $c->opportunities_count }}</td>
                         <td class="p-3 font-mono">Rp {{ number_format($c->total_tcv ?? 0, 0, ',', '.') }}</td>
@@ -110,9 +112,7 @@
                             </button>
                         </td>
                         <td class="p-3 text-right">
-                            @if ($canManage)
-                                <button wire:click="openEdit({{ $c->id }})" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:text-white">Edit</button>
-                            @endif
+                            <button wire:click="openDetail({{ $c->id }})" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ink dark:text-white">Detail</button>
                         </td>
                     </tr>
                 @empty
@@ -128,12 +128,12 @@
         @forelse ($customers as $c)
             <div class="p-3.5">
                 <div class="flex items-start justify-between gap-2 mb-2">
-                    <div class="min-w-0">
-                        <div class="font-semibold text-sm truncate">{{ $c->name }}</div>
+                    <button wire:click="openDetail({{ $c->id }})" class="min-w-0 text-left hover:text-sky">
+                        <div class="font-semibold text-sm truncate hover:underline">{{ $c->name }}</div>
                         @if ($c->industry)
                             <div class="text-xs text-gray-400 dark:text-gray-500">{{ $c->industry }}</div>
                         @endif
-                    </div>
+                    </button>
                     <button @if ($canManage) wire:click="toggleFocus({{ $c->id }})" @else disabled @endif @class([
                         'text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0',
                         'bg-amber-50 text-amber-600' => $c->is_focus,
@@ -161,9 +161,7 @@
                         <div class="font-medium">{{ $c->last_won_at ? \Carbon\Carbon::parse($c->last_won_at)->translatedFormat('d M Y') : '—' }}</div>
                     </div>
                 </div>
-                @if ($canManage)
-                    <button wire:click="openEdit({{ $c->id }})" class="text-xs font-semibold text-sky">Edit customer →</button>
-                @endif
+                <button wire:click="openDetail({{ $c->id }})" class="text-xs font-semibold text-sky">Lihat Detail →</button>
             </div>
         @empty
             <div class="p-8 text-center text-xs text-gray-400 dark:text-gray-500">Belum ada customer{{ $canManage ? '. Klik "+ Customer Baru" buat mulai.' : '.' }}</div>
@@ -174,7 +172,81 @@
         {{ $customers->links() }}
     </div>
 
-    {{-- Modal --}}
+    {{-- Modal View Detail (read-only) — muncul pas klik nama, Edit-nya
+         dipindah jadi tombol DI DALEM sini, bukan lagi tombol lepas. --}}
+    @if ($showDetailModal && $detailCustomer)
+        <div class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-4 z-50" wire:click.self="closeDetail">
+            <div class="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="font-display font-extrabold text-lg">{{ $detailCustomer->name }}</h2>
+                        @if ($detailCustomer->industry)
+                            <div class="text-xs text-gray-400 dark:text-gray-500">{{ $detailCustomer->industry }}</div>
+                        @endif
+                    </div>
+                    <button wire:click="closeDetail" class="text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 text-xl leading-none">&times;</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-3">
+                        <div class="text-xs text-gray-400 dark:text-gray-500">Jumlah Opty</div>
+                        <div class="font-mono font-bold text-lg">{{ $detailCustomer->opportunities_count }}</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-3">
+                        <div class="text-xs text-gray-400 dark:text-gray-500">Total TCV</div>
+                        <div class="font-mono font-bold text-sm">Rp {{ number_format($detailCustomer->total_tcv ?? 0, 0, ',', '.') }}</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-3">
+                        <div class="text-xs text-gray-400 dark:text-gray-500">Total WON</div>
+                        <div class="font-mono font-bold text-sm text-emerald-600">Rp {{ number_format($detailCustomer->total_won ?? 0, 0, ',', '.') }}</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-3">
+                        <div class="text-xs text-gray-400 dark:text-gray-500">WON Terakhir</div>
+                        <div class="font-semibold text-sm">{{ $detailCustomer->last_won_at ? \Carbon\Carbon::parse($detailCustomer->last_won_at)->translatedFormat('d M Y') : '—' }}</div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 text-sm mb-2">
+                    @if ($detailCustomer->is_focus)
+                        <div><span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600">★ Fokus</span></div>
+                    @endif
+                    <div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Nama PIC</div>
+                        <div>{{ $detailCustomer->pic_name ?: '—' }}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">No. HP PIC</div>
+                            <div>{{ $detailCustomer->pic_phone ?: '—' }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Email PIC</div>
+                            <div class="truncate">{{ $detailCustomer->pic_email ?: '—' }}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Alamat</div>
+                        <div>{{ $detailCustomer->address ?: '—' }}</div>
+                    </div>
+                    @if ($detailCustomer->notes)
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Catatan</div>
+                            <div>{{ $detailCustomer->notes }}</div>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3">
+                    <button wire:click="closeDetail" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">Tutup</button>
+                    @if ($canManage)
+                        <button wire:click="editFromDetail({{ $detailCustomer->id }})" class="text-sm font-semibold px-4 py-2 rounded-lg bg-ink text-white">Edit</button>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal Form (create/edit) --}}
     @if ($showModal && $canManage)
         <div class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-4 z-50" wire:click.self="closeModal">
             <div class="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6">

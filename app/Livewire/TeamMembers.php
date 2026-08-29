@@ -21,6 +21,9 @@ class TeamMembers extends Component
     public bool $showModal = false;
     public ?int $editingId = null;
 
+    public bool $showDetailModal = false;
+    public ?int $detailId = null;
+
     #[Validate('required|string|max:150')]
     public string $name = '';
 
@@ -68,7 +71,31 @@ class TeamMembers extends Component
         return view('livewire.team-members', [
             'members' => $members,
             'canManage' => $this->canManage(),
+            'detailMember' => $this->detailId
+                ? TeamMember::withCount(['opportunitiesAsSales', 'opportunitiesAsPresales', 'opportunitiesAsEngineer'])->find($this->detailId)
+                : null,
         ]);
+    }
+
+    // Klik nama -> buka popup View Detail (read-only, siapapun boleh liat).
+    // Edit sekarang dipindah jadi tombol DI DALEM popup ini, bukan lagi
+    // tombol terpisah di baris/card.
+    public function openDetail(int $id): void
+    {
+        $this->detailId = $id;
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetail(): void
+    {
+        $this->showDetailModal = false;
+        $this->detailId = null;
+    }
+
+    public function editFromDetail(int $id): void
+    {
+        $this->showDetailModal = false;
+        $this->openEdit($id);
     }
 
     public function openCreate(): void

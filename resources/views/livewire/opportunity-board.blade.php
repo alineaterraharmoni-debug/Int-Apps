@@ -83,19 +83,14 @@
                      penuh tetep kelola-able tanpa perlu warning apa-apa. --}}
                 <div class="max-h-[62vh] md:max-h-[65vh] overflow-y-auto flex flex-col gap-2.5 divide-y-2 divide-gray-300 dark:divide-gray-600 pr-0.5 -mr-0.5">
                 @forelse ($items as $opty)
-                    @php
-                        $cardEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads');
-                    @endphp
                     <div
                         class="opty-card"
                         style="touch-action: manipulation;"
                         x-on:dragstart="$event.dataTransfer.setData('text/plain', '{{ $opty->id }}')"
-                        @if ($cardEditable) wire:click="openEdit({{ $opty->id }})" @endif
+                        wire:click="openDetail({{ $opty->id }})"
                         wire:key="opty-{{ $opty->id }}"
                         @class([
-                            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 transition',
-                            'cursor-pointer hover:shadow-md' => $cardEditable,
-                            'opacity-80' => ! $cardEditable,
+                            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 transition cursor-pointer hover:shadow-md',
                             'ring-1 ring-rose-300 dark:ring-rose-500/40' => $opty->is_overdue,
                         ])
                     >
@@ -269,14 +264,10 @@
                 </thead>
                 <tbody>
                     @forelse ($listItems as $opty)
-                        @php $rowEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads'); @endphp
                         <tr
                             wire:key="list-opty-{{ $opty->id }}"
-                            @if ($rowEditable) wire:click="openEdit({{ $opty->id }})" @endif
-                            @class([
-                                'border-b border-gray-50 dark:border-gray-700/60 transition',
-                                'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40' => $rowEditable,
-                            ])
+                            wire:click="openDetail({{ $opty->id }})"
+                            class="border-b border-gray-50 dark:border-gray-700/60 transition cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40"
                         >
                             <td class="p-3 font-medium">
                                 @if ($opty->is_overdue)
@@ -311,14 +302,10 @@
              Sort tetep jalan lewat tombol/filter yang sama, cuma tampilannya beda. --}}
         <div class="md:hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl divide-y-2 divide-gray-100 dark:divide-gray-700 overflow-hidden">
             @forelse ($listItems as $opty)
-                @php $rowEditable = $canManageFull || ($canManageMqlOnly && $opty->stage === 'leads'); @endphp
                 <div
                     wire:key="list-opty-mobile-{{ $opty->id }}"
-                    @if ($rowEditable) wire:click="openEdit({{ $opty->id }})" @endif
-                    @class([
-                        'p-3.5 transition',
-                        'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60' => $rowEditable,
-                    ])
+                    wire:click="openDetail({{ $opty->id }})"
+                    class="p-3.5 transition cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 active:bg-gray-100 dark:active:bg-gray-700/60"
                 >
                     <div class="flex items-start justify-between gap-2 mb-1.5">
                         <div class="font-medium text-sm leading-snug flex items-start gap-1.5 min-w-0">
@@ -370,6 +357,129 @@
         </div>
     @endif
 
+    {{-- Modal View Detail (read-only) — muncul pas klik kartu/nama opty,
+         siapapun boleh liat termasuk role view-only. Edit dipindah jadi
+         tombol DI DALEM sini, cuma muncul kalau role-nya emang boleh edit
+         opty ini spesifik (ngikutin aturan Leads-only kalau role-nya kebatas). --}}
+    @if ($showDetailModal && $detailOpty)
+        @php
+            $detailEditable = $canManageFull || ($canManageMqlOnly && $detailOpty->stage === 'leads');
+            $detailStageColors = [
+                'leads' => 'bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-300',
+                'develop' => 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-300',
+                'won' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
+                'lost' => 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300',
+            ];
+        @endphp
+        <div class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center sm:p-4 z-50" wire:click.self="closeDetail">
+            <div class="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6">
+                <div class="flex items-start justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="font-display font-extrabold text-lg leading-snug">{{ $detailOpty->title }}</h2>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ $detailOpty->customer?->name ?? $detailOpty->customer_name }}</div>
+                    </div>
+                    <button wire:click="closeDetail" class="text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 text-xl leading-none shrink-0">&times;</button>
+                </div>
+
+                <div class="flex items-center gap-1.5 flex-wrap mb-4">
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full {{ $detailStageColors[$detailOpty->stage] ?? '' }}">{{ $detailOpty->stage_label }}</span>
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400">{{ $detailOpty->category_label }}</span>
+                    <span @class([
+                        'text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                        'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' => $detailOpty->rating === 'high',
+                        'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' => $detailOpty->rating === 'med',
+                        'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' => $detailOpty->rating === 'low',
+                    ])>{{ $detailOpty->rating_label }}</span>
+                    @if ($detailOpty->is_overdue)
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Closing Kelewat</span>
+                    @endif
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-3">
+                        <div class="text-xs text-gray-400 dark:text-gray-500">TCV</div>
+                        <div class="font-mono font-bold text-sm">Rp {{ number_format($detailOpty->tcv, 0, ',', '.') }}</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-3">
+                        <div class="text-xs text-gray-400 dark:text-gray-500">GP</div>
+                        <div class="font-mono font-bold text-sm">{{ rtrim(rtrim(number_format($detailOpty->gp_percentage, 1), '0'), '.') }}% · Rp {{ number_format($detailOpty->gp_nominal, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 text-sm mb-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Sales</div>
+                            <div>{{ $detailOpty->sales?->name ?: '—' }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Presales</div>
+                            <div>{{ $detailOpty->presales?->name ?: '—' }}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Tim Engineer</div>
+                        <div>{{ $detailOpty->engineers->pluck('name')->implode(', ') ?: '—' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Ekspektasi Closing</div>
+                        <div>{{ $detailOpty->expected_closing_date?->format('d M Y') ?? '—' }}</div>
+                    </div>
+
+                    @if ($detailOpty->stage === 'won')
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Alasan Menang</div>
+                            <div>{{ $detailOpty->won_category_label ?? '—' }}{{ $detailOpty->won_reason ? ' — '.$detailOpty->won_reason : '' }}</div>
+                        </div>
+                    @endif
+                    @if ($detailOpty->stage === 'lost')
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Alasan Drop</div>
+                            <div>{{ $detailOpty->lost_category_label ?? '—' }}{{ $detailOpty->lost_reason ? ' — '.$detailOpty->lost_reason : '' }}</div>
+                        </div>
+                    @endif
+
+                    @php $nextActionItemsDetail = \App\Models\Opportunity::NEXT_ACTION_ITEMS[$detailOpty->stage] ?? []; @endphp
+                    @if (count($nextActionItemsDetail))
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-1">Next Action</div>
+                            <div class="space-y-1">
+                                @foreach ($nextActionItemsDetail as $key => $label)
+                                    @php $checked = ! empty($detailOpty->next_action_checklist[$key] ?? null); @endphp
+                                    <div class="flex items-center gap-1.5 text-xs">
+                                        @if ($checked)
+                                            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4"><path d="M20 6 9 17l-5-5"/></svg>
+                                            </span>
+                                        @else
+                                            <span class="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-gray-600 shrink-0"></span>
+                                        @endif
+                                        <span class="{{ $checked ? 'text-gray-500 dark:text-gray-400 line-through' : '' }}">{{ $label }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($detailOpty->notes)
+                        <div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Catatan</div>
+                            <div>{{ $detailOpty->notes }}</div>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <button wire:click="closeDetail" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">Tutup</button>
+                    @if ($detailEditable)
+                        <button wire:click="editFromDetail({{ $detailOpty->id }})" class="text-sm font-semibold px-4 py-2 rounded-lg bg-ink text-white">Edit</button>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal Form (create/edit) --}}
     @if ($showModal)
         @php
             $infoHasError = $errors->hasAny(['title', 'customer_id', 'new_customer_name', 'new_customer_address', 'category', 'tcv', 'gp_percentage', 'rating']);
