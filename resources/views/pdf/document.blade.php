@@ -11,15 +11,15 @@
         .company-info { font-size: 9px; color: #444; line-height: 1.5; margin-top: 4px; }
         .company-info b { color: #111; }
         .doc-title { font-size: 20px; font-style: italic; font-weight: bold; text-align: right; color: #222; line-height: 1.2; margin-bottom: 4px; }
-        {{-- Meta-table (Date / No / Ref) sekarang 3-kolom (label/titik-dua/nilai)
-             dengan lebar label TETAP — jadi titik dua-nya selalu sejajar
-             vertikal dari baris ke baris, gak lompat-lompat ngikutin panjang
-             teks label kayak sebelumnya. --}}
-        .meta-table { font-size: 9.5px; margin-top: 2px; width: 100%; }
+        {{-- Meta-table (Date / No / Ref) — lebarnya sekarang OTOMATIS (bukan
+             100%) + margin-left:auto, biar keseluruhan blok nempel ke pojok
+             kanan (sejajar margin kanan halaman), sementara titik dua-nya
+             tetep sejajar antar baris (label punya lebar tetap). --}}
+        .meta-table { font-size: 9.5px; margin-top: 2px; width: auto; margin-left: auto; }
         .meta-table td { padding: 1px 0; vertical-align: top; text-align: left; }
         .meta-label { color: #555; width: 82px; white-space: nowrap; }
         .meta-colon { width: 8px; }
-        .meta-value { text-align: left; }
+        .meta-value { text-align: left; white-space: nowrap; }
         .divider { border-top: 2px solid #19A9DB; margin: 10px 0 14px; }
 
         .recipient-box { background: #E9F6FC; padding: 4px 8px; font-weight: bold; font-size: 9.5px; color: #0A1628; margin-bottom: 6px; }
@@ -61,11 +61,7 @@
         .sign-table td { width: 50%; font-size: 10px; vertical-align: top; padding: 0; text-align: left; }
         .sign-space { height: 60px; }
         .sign-name { font-weight: bold; border-top: 1px solid #333; padding-top: 3px; display: inline-block; min-width: 160px; }
-        .sign-title { font-size: 9px; }
-        {{-- Warna beda per pihak (biru = sisi customer/vendor, oranye = sisi
-             Alinea) — ngikutin contoh referensi kop surat yang dikasih. --}}
-        .sign-customer .sign-name, .sign-customer .sign-title { color: #1E6FA8; }
-        .sign-alinea .sign-name, .sign-alinea .sign-title { color: #B4530A; }
+        .sign-title { font-size: 9px; color: #444; }
     </style>
 </head>
 <body>
@@ -249,14 +245,14 @@
     @if ($doc->type === 'bast')
         <table class="sign-table">
             <tr>
-                <td class="sign-alinea">
+                <td>
                     <div>Pihak Pertama,</div>
                     <div class="sign-space"></div>
                     <div class="sign-name">{{ $doc->signatory_name }}</div><br>
                     <span class="sign-title">PT. Alinea Terra Harmoni</span>
                     @if ($doc->signatory_title)<br><span class="sign-title">{{ $doc->signatory_title }}</span>@endif
                 </td>
-                <td class="sign-customer">
+                <td>
                     <div>Pihak Kedua,</div>
                     <div class="sign-space"></div>
                     <div class="sign-name">{{ $doc->contact_name }}</div><br>
@@ -265,8 +261,8 @@
             </tr>
         </table>
     @elseif ($doc->type === 'po')
-        <div class="sign-alinea" style="margin-top: 20px; font-size: 10px;">
-            <b style="color: #222;">Disetujui oleh PT. Alinea Terra Harmoni</b>
+        <div style="margin-top: 20px; font-size: 10px;">
+            <b>Disetujui oleh PT. Alinea Terra Harmoni</b>
             <div class="sign-space"></div>
             <div class="sign-name">{{ $doc->signatory_name }}</div><br>
             <span class="sign-title">{{ $doc->signatory_title ?: 'Business Development' }}</span>
@@ -274,7 +270,7 @@
     @else
         <table class="sign-table">
             <tr>
-                <td class="sign-customer">
+                <td>
                     <div>Accepted by,</div>
                     <div class="sign-space"></div>
                     {{-- Kalau gak ada Contact Name, baris tanda tangan SENGAJA
@@ -284,7 +280,10 @@
                     <div class="sign-name">{{ $doc->contact_name }}</div><br>
                     <span class="sign-title">{{ $doc->customer?->name }}</span>
                 </td>
-                <td class="sign-alinea">
+                {{-- Regards SENGAJA rata kanan (text-align:right) — biar garis
+                     tanda tangannya nempel persis ke margin kanan halaman,
+                     bukan ngambang di tengah kolom kayak sebelumnya. --}}
+                <td style="text-align: right;">
                     <div>Regards,</div>
                     @if ($doc->type === 'invoice')
                         <div style="font-size: 9px; margin-top: 4px; color: #444;">Materai 10.000</div>
