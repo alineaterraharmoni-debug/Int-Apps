@@ -10,15 +10,22 @@
         .logo { width: 150px; }
         .company-info { font-size: 9px; color: #444; line-height: 1.5; margin-top: 4px; }
         .company-info b { color: #111; }
-        .doc-title { font-size: 20px; font-style: italic; font-weight: bold; text-align: right; color: #222; }
-        .meta-table { font-size: 9.5px; margin-top: 6px; }
-        .meta-table td { padding: 1px 0; text-align: right; }
-        .meta-label { color: #555; padding-right: 8px !important; }
+        .doc-title { font-size: 20px; font-style: italic; font-weight: bold; text-align: right; color: #222; line-height: 1.2; margin-bottom: 4px; }
+        {{-- Meta-table (Date / No / Ref) sekarang 3-kolom (label/titik-dua/nilai)
+             dengan lebar label TETAP — jadi titik dua-nya selalu sejajar
+             vertikal dari baris ke baris, gak lompat-lompat ngikutin panjang
+             teks label kayak sebelumnya. --}}
+        .meta-table { font-size: 9.5px; margin-top: 2px; width: 100%; }
+        .meta-table td { padding: 1px 0; vertical-align: top; text-align: left; }
+        .meta-label { color: #555; width: 82px; white-space: nowrap; }
+        .meta-colon { width: 8px; }
+        .meta-value { text-align: left; }
         .divider { border-top: 2px solid #19A9DB; margin: 10px 0 14px; }
 
         .recipient-box { background: #E9F6FC; padding: 4px 8px; font-weight: bold; font-size: 9.5px; color: #0A1628; margin-bottom: 6px; }
         .recipient-table td { padding: 1px 0; font-size: 10px; vertical-align: top; }
-        .recipient-label { width: 110px; color: #555; }
+        .recipient-label { width: 90px; color: #555; }
+        .recipient-address { padding-top: 2px !important; }
 
         .two-col td { width: 50%; vertical-align: top; padding-right: 20px; }
 
@@ -40,7 +47,7 @@
         .terms-text { vertical-align: top; white-space: pre-line; }
 
         .sign-table { margin-top: 26px; width: 100%; }
-        .sign-table td { width: 50%; font-size: 10px; vertical-align: top; }
+        .sign-table td { width: 50%; font-size: 10px; vertical-align: top; padding: 0; text-align: left; }
         .sign-space { height: 55px; }
         .sign-name { font-weight: bold; border-top: 1px solid #333; padding-top: 3px; display: inline-block; min-width: 160px; }
         .sign-title { font-size: 9px; color: #444; }
@@ -67,15 +74,15 @@
                     @endif
                 </div>
                 <table class="meta-table">
-                    <tr><td class="meta-label">Date</td><td>: {{ $doc->doc_date->translatedFormat('l, d F Y') }}</td></tr>
-                    <tr><td class="meta-label">{{ $doc->type_label }} No</td><td>: {{ $doc->number }}</td></tr>
+                    <tr><td class="meta-label">Date</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->doc_date->translatedFormat('l, d F Y') }}</td></tr>
+                    <tr><td class="meta-label">{{ $doc->type_label }} No</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->number ?: 'DRAFT' }}</td></tr>
                     @if ($doc->type === 'invoice' && $doc->ref_po_number)
-                        <tr><td class="meta-label">Refer PO No</td><td>: {{ $doc->ref_po_number }}</td></tr>
+                        <tr><td class="meta-label">Refer PO No</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->ref_po_number }}</td></tr>
                     @endif
                     @if ($doc->type === 'bast')
-                        @if ($doc->ref_quotation_number)<tr><td class="meta-label">Ref. Quotation</td><td>: {{ $doc->ref_quotation_number }}</td></tr>@endif
-                        @if ($doc->ref_po_number)<tr><td class="meta-label">Ref. PO</td><td>: {{ $doc->ref_po_number }}</td></tr>@endif
-                        @if ($doc->ref_invoice_number)<tr><td class="meta-label">Ref. Invoice</td><td>: {{ $doc->ref_invoice_number }}</td></tr>@endif
+                        @if ($doc->ref_quotation_number)<tr><td class="meta-label">Ref. Quotation</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->ref_quotation_number }}</td></tr>@endif
+                        @if ($doc->ref_po_number)<tr><td class="meta-label">Ref. PO</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->ref_po_number }}</td></tr>@endif
+                        @if ($doc->ref_invoice_number)<tr><td class="meta-label">Ref. Invoice</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->ref_invoice_number }}</td></tr>@endif
                     @endif
                 </table>
             </td>
@@ -99,7 +106,7 @@
                     <table class="recipient-table">
                         <tr><td class="recipient-label">Nama Perusahaan</td><td>: {{ $doc->customer?->name }}</td></tr>
                         @if ($doc->contact_name)<tr><td class="recipient-label">Contact Name</td><td>: {{ $doc->contact_name }}</td></tr>@endif
-                        @if ($doc->customer?->address)<tr><td class="recipient-label"></td><td>{{ $doc->customer->address }}</td></tr>@endif
+                        @if ($doc->customer?->address)<tr><td colspan="2" class="recipient-address">{{ $doc->customer->address }}</td></tr>@endif
                     </table>
                 </td>
             </tr>
@@ -122,7 +129,10 @@
                 $recipientAddress = $doc->type === 'po' ? $doc->vendor?->address : $doc->customer?->address;
             @endphp
             @if ($recipientAddress)
-                <tr><td class="recipient-label"></td><td>{{ $recipientAddress }}</td></tr>
+                {{-- colspan=2 (bukan kolom kedua doang) biar alamatnya sejajar
+                     sama teks "Account Name"/"Contact Name", bukan nempel di
+                     bawah titik dua. --}}
+                <tr><td colspan="2" class="recipient-address">{{ $recipientAddress }}</td></tr>
             @endif
         </table>
 
@@ -225,7 +235,7 @@
                 <td>
                     <div>Pihak Kedua,</div>
                     <div class="sign-space"></div>
-                    <div class="sign-name">{{ $doc->contact_name ?: ($doc->customer?->name ?: '________________') }}</div><br>
+                    <div class="sign-name">{{ $doc->contact_name }}</div><br>
                     <span class="sign-title">{{ $doc->customer?->name }}</span>
                 </td>
             </tr>
@@ -243,7 +253,11 @@
                 <td>
                     <div>Accepted by,</div>
                     <div class="sign-space"></div>
-                    <div class="sign-name">{{ $doc->contact_name ?: ($doc->customer?->name ?: '________________') }}</div><br>
+                    {{-- Kalau gak ada Contact Name, baris tanda tangan SENGAJA
+                         dibiarin kosong (bukan diisi nama customer) — nama
+                         customer-nya tetep di baris caption di bawahnya aja,
+                         gak dobel. --}}
+                    <div class="sign-name">{{ $doc->contact_name }}</div><br>
                     <span class="sign-title">{{ $doc->customer?->name }}</span>
                 </td>
                 <td>

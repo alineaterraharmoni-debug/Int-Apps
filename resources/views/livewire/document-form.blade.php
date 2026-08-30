@@ -17,7 +17,7 @@
         </div>
     @endif
 
-    <form wire:submit="save" class="space-y-5">
+    <form wire:submit="saveDraft" class="space-y-5">
         {{-- Info dasar --}}
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -29,10 +29,11 @@
                 <div>
                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
                         Nomor Dokumen
-                        <span class="font-normal text-gray-400">(otomatis, bisa diubah manual)</span>
+                        <span class="font-normal text-gray-400">(kosongin = auto pas Difinalisasi)</span>
                     </label>
-                    <input type="text" wire:model="number" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm font-mono">
+                    <input type="text" wire:model="number" placeholder="Otomatis kalau dikosongin & di-Simpan Dokumen" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm font-mono placeholder:text-[11px]">
                     @error('number') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Draft gak punya nomor sama sekali — nomor cuma kegenerate/kesimpen pas status-nya Final.</p>
                 </div>
             </div>
 
@@ -54,12 +55,14 @@
                     x-on:click.outside="open = false"
                 >
                     <input type="text" x-model="q" x-on:focus="open = true"
-                           x-on:input="open = true; $wire.pickOpportunity(null)"
+                           x-on:input="open = true; if (! $event.target.value) { $wire.pickOpportunity(null); }"
+                           x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
+                           x-on:keydown.escape="open = false"
                            placeholder="Cari opty... (kosongin kalau gak dilink)" autocomplete="off"
                            class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                     <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                         <template x-for="o in filtered" :key="o.id">
-                            <div x-on:click="pick(o)" x-text="o.title" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
+                            <div x-on:mousedown.prevent="pick(o)" x-text="o.title" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
                         </template>
                         <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Gak ketemu.</div>
                     </div>
@@ -84,17 +87,19 @@
                                     const s = this.q.toLowerCase();
                                     return this.items.filter(v => v.name.toLowerCase().includes(s));
                                 },
-                                pick(v) { this.q = v.name; this.open = false; $wire.set('vendor_id', v.id); }
+                                pick(v) { this.q = v.name; this.open = false; $wire.pickVendor(v.id); }
                             }"
                             x-on:click.outside="open = false"
                         >
                             <input type="text" x-model="q" x-on:focus="open = true"
-                                   x-on:input="open = true; $wire.set('vendor_id', null)"
+                                   x-on:input="open = true; if (! $event.target.value) { $wire.pickVendor(null); }"
+                                   x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
+                                   x-on:keydown.escape="open = false"
                                    placeholder="Cari vendor..." autocomplete="off"
                                    class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                             <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                                 <template x-for="v in filtered" :key="v.id">
-                                    <div x-on:click="pick(v)" x-text="v.name" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
+                                    <div x-on:mousedown.prevent="pick(v)" x-text="v.name" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
                                 </template>
                                 <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Gak ketemu.</div>
                             </div>
@@ -138,17 +143,19 @@
                                     const s = this.q.toLowerCase();
                                     return this.items.filter(c => c.name.toLowerCase().includes(s));
                                 },
-                                pick(c) { this.q = c.name; this.open = false; $wire.set('customer_id', c.id); }
+                                pick(c) { this.q = c.name; this.open = false; $wire.pickCustomer(c.id); }
                             }"
                             x-on:click.outside="open = false"
                         >
                             <input type="text" x-model="q" x-on:focus="open = true"
-                                   x-on:input="open = true; $wire.set('customer_id', null)"
+                                   x-on:input="open = true; if (! $event.target.value) { $wire.pickCustomer(null); }"
+                                   x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
+                                   x-on:keydown.escape="open = false"
                                    placeholder="Cari customer..." autocomplete="off"
                                    class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                             <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                                 <template x-for="c in filtered" :key="c.id">
-                                    <div x-on:click="pick(c)" x-text="c.name" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
+                                    <div x-on:mousedown.prevent="pick(c)" x-text="c.name" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
                                 </template>
                                 <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Gak ketemu.</div>
                             </div>
@@ -275,11 +282,17 @@
             @endif
             <div class="flex flex-col sm:flex-row gap-2 order-1 sm:order-2">
                 <a href="{{ route('documents.index') }}" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-center">Batal</a>
-                <button type="submit" class="text-sm font-semibold px-5 py-2 rounded-lg bg-ink text-white">Simpan Dokumen</button>
-                {{-- "Simpan sebagai Draft" ditaro DI BAWAH tombol utama (bukan
-                     toggle di atas) — Draft gak ngecentang checklist Next
-                     Action di opty terkait, baru Final yang ngecentang. --}}
-                <button type="button" wire:click="saveDraft" class="text-sm font-semibold px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">Simpan sebagai Draft</button>
+                {{-- Simpan sebagai Draft ditaro TEPAT SETELAH Batal (bukan di
+                     paling ujung) — dan ini yang jadi default kalau user
+                     nekan Enter di form (form-nya wire:submit="saveDraft").
+                     Draft gak ngecentang checklist Next Action di opty
+                     terkait, baru Final yang ngecentang. --}}
+                <button type="submit" class="text-sm font-semibold px-5 py-2 rounded-lg border border-sky text-sky hover:bg-sky/5">Simpan sebagai Draft</button>
+                {{-- Simpan Dokumen (Final) SENGAJA type="button" + wire:click
+                     manual, BUKAN submit form-nya — biar nekan Enter di
+                     field manapun gak ke-anggep "Simpan Dokumen" (Final)
+                     tapi ke-anggep Draft (lebih aman, gak "kecolongan" final). --}}
+                <button type="button" wire:click="save" class="text-sm font-semibold px-5 py-2 rounded-lg bg-ink text-white">Simpan Dokumen</button>
             </div>
         </div>
     </form>

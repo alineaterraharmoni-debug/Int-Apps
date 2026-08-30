@@ -19,6 +19,9 @@ class DocumentList extends Component
     public ?string $dateTo = null;
     public bool $showFilters = false;
 
+    public bool $showDetailModal = false;
+    public ?int $detailId = null;
+
     public function mount(): void
     {
         // Abis save dari form, balik ke sini udah langsung ke-filter ke
@@ -85,7 +88,24 @@ class DocumentList extends Component
             'types' => Document::TYPES,
             'statuses' => Document::STATUSES,
             'canManage' => auth()->user()->hasPermission('document.manage'),
+            'detailDocument' => $this->detailId
+                ? Document::with(['customer', 'vendor', 'opportunity', 'items'])->find($this->detailId)
+                : null,
         ]);
+    }
+
+    // Klik baris (di luar tombol PDF/Hapus) -> buka popup View Detail
+    // read-only. Edit dipindah jadi tombol DI DALEM popup ini.
+    public function openDetail(int $id): void
+    {
+        $this->detailId = $id;
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetail(): void
+    {
+        $this->showDetailModal = false;
+        $this->detailId = null;
     }
 
     public function delete(int $id): void

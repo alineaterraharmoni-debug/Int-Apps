@@ -16,11 +16,10 @@ class DocumentForm extends Component
 {
     public ?int $editingId = null;
     public string $type = 'quotation';
+    // Nomor SENGAJA gak di-generate di awal lagi — Draft gak punya nomor
+    // sama sekali. Nomor cuma keisi otomatis pas beneran di-finalisasi
+    // ("Simpan Dokumen"), atau kalau user ngetik manual sebelum itu.
     public ?string $number = null;
-    // Nomor auto-generate ngikutin tanggal+jenis SELAMA user belum ngedit
-    // manual. Begitu user ngetik langsung di field Nomor, flag ini jadi true
-    // dan auto-regenerate berhenti nimpa apa yang udah diketik.
-    public bool $numberManuallyEdited = false;
     public string $doc_date;
 
     public ?int $opportunity_id = null;
@@ -47,9 +46,6 @@ class DocumentForm extends Component
             $this->editingId = $doc->id;
             $this->type = $doc->type;
             $this->number = $doc->number;
-            // Dokumen yang UDAH ADA nomornya jangan di-regenerate diem-diem
-            // cuma gara-gara tanggalnya diubah pas edit.
-            $this->numberManuallyEdited = true;
             $this->doc_date = $doc->doc_date->toDateString();
             $this->opportunity_id = $doc->opportunity_id;
             $this->customer_id = $doc->customer_id;
@@ -73,33 +69,22 @@ class DocumentForm extends Component
         } else {
             $this->type = in_array($type, array_keys(Document::TYPES)) ? $type : 'quotation';
             $this->terms = DocumentTerms::default($this->type);
-            $this->number = Document::generateNumber($this->type, $this->doc_date);
             $this->addItem();
         }
     }
 
-    // Tanggal diubah -> nomor ikut nyesuain bulan/tahunnya (SELAMA belum
-    // diedit manual sama user).
-    public function updatedDocDate(): void
+    // Dipanggil dari typeahead Customer di blade lewat method langsung
+    // (bukan $wire.set) — biar dijamin ke-commit seketika, gak ada resiko
+    // "kepilih tapi datanya gak keisi" kayak yang kemarin kejadian.
+    public function pickCustomer(?int $id): void
     {
-        if (! $this->numberManuallyEdited && ! $this->editingId) {
-            $this->number = Document::generateNumber($this->type, $this->doc_date);
-        }
-    }
-
-    // User ngetik langsung di field nomor -> stop auto-regenerate.
-    public function updatedNumber(): void
-    {
-        $this->numberManuallyEdited = true;
-    }
-
-    public function updatedCustomerId(): void
-    {
+        $this->customer_id = $id;
         $this->contact_name = '';
     }
 
-    public function updatedVendorId(): void
+    public function pickVendor(?int $id): void
     {
+        $this->vendor_id = $id;
         $this->contact_name = '';
     }
 
@@ -160,24 +145,18 @@ class DocumentForm extends Component
         $this->items = array_values($this->items);
     }
 
-    public function selectOpportunity(): void
-    {
-        if (! $this->opportunity_id) {
-            return;
-        }
-
-        $opty = Opportunity::find($this->opportunity_id);
-        if ($opty && $this->type !== 'po') {
-            $this->customer_id = $opty->customer_id;
-        }
-    }
-
     // Dipanggil dari typeahead Opty di blade — gabungin set id + auto-isi
-    // customer jadi satu network call, bukan dua terpisah.
+    // customer jadi satu network call.
     public function pickOpportunity(?int $id): void
     {
         $this->opportunity_id = $id;
-        $this->selectOpportunity();
+
+        if ($id && $this->type !== 'po') {
+            $opty = Opportunity::find($id);
+            if ($opty) {
+                $this->customer_id = $opty->customer_id;
+            }
+        }
     }
 
     private function calculateTotal(): float
@@ -185,13 +164,30 @@ class DocumentForm extends Component
         return collect($this->items)->sum(fn ($i) => (float) ($i['qty'] ?? 0) * (float) ($i['unit_price'] ?? 0));
     }
 
+    /**
+     * Tombol utama "Simpan Dokumen" = finalisasi. Nomor OTOMATIS di-generate
+     * di sini kalau masih kosong (draft yang belum ada nomor, atau dokumen
+     * baru langsung difinalisasi tanpa lewat draft dulu).
+     */
     public function save(): void
     {
+        if (! $this->number) {
+            $this->number = Document::generateNumber($this->type, $this->doc_date);
+        }
+
         $this->persist('final');
     }
 
+    /**
+     * Ini yang jalan kalau user pencet Enter di form (default submit) —
+     * sengaja dibikin "aman" (gak langsung final). Nomor SENGAJA dikosongin
+     * total tiap kali disimpen sebagai Draft — termasuk kalau sebelumnya
+     * dokumen ini udah Final terus diubah balik ke Draft, nomornya ikut
+     * kehapus (bukan cuma dibiarin nyantol).
+     */
     public function saveDraft(): void
     {
+        $this->number = null;
         $this->persist('draft');
     }
 
@@ -199,7 +195,7 @@ class DocumentForm extends Component
     {
         $rules = [
             'type' => 'required|in:quotation,invoice,po,bast',
-            'number' => ['required', 'string', 'max:100', Rule::unique('documents', 'number')->ignore($this->editingId)],
+            'number' => ['nullable', 'string', 'max:100', Rule::unique('documents', 'number')->ignore($this->editingId)],
             'doc_date' => 'required|date',
             'contact_name' => 'nullable|string|max:150',
             'terms' => 'nullable|string',
@@ -212,8 +208,7 @@ class DocumentForm extends Component
         ];
 
         // PO tetep ditujukan ke Vendor, tapi Customer terkait (siapa yang
-        // butuh barang ini) SEKARANG ikut disimpen juga — sebelumnya PO
-        // gak nyimpen customer_id sama sekali (dikosongin paksa).
+        // butuh barang ini) SEKARANG ikut disimpen juga.
         $rules['vendor_id'] = $this->type === 'po' ? 'required|exists:vendors,id' : 'nullable|exists:vendors,id';
         $rules['customer_id'] = $this->type !== 'po' ? 'required|exists:customers,id' : 'nullable|exists:customers,id';
 
