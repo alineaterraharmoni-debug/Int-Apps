@@ -43,7 +43,11 @@
         table.items .money { text-align: right; white-space: nowrap; }
         .group-row td { background: #FAFAFA; font-weight: bold; font-size: 9.5px; border: none; }
         .desc-detail { font-size: 9px; color: #555; margin-top: 2px; white-space: pre-line; }
-        .total-row td { font-weight: bold; font-size: 11px; border-top: 2px solid #000; }
+        {{-- Selector DIPERSPESIFIK (table.items .total-row td, bukan cuma
+             .total-row td) — soalnya rule "table.items td { border:none }"
+             di atas lebih spesifik dan bakal menang/nge-cancel border-top
+             ini kalau selector-nya kalah spesifik. --}}
+        table.items .total-row td { font-weight: bold; font-size: 11px; border: none; border-top: 2px solid #000 !important; }
 
         .terms-box { border: 1px solid #999; padding: 8px 10px; margin-top: 18px; font-size: 9px; }
         .terms-box .title { font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
@@ -53,11 +57,15 @@
         .terms-num { width: 14px; vertical-align: top; }
         .terms-text { vertical-align: top; white-space: pre-line; }
 
-        .sign-table { margin-top: 26px; width: 100%; }
+        .sign-table { margin-top: 30px; width: 100%; }
         .sign-table td { width: 50%; font-size: 10px; vertical-align: top; padding: 0; text-align: left; }
-        .sign-space { height: 55px; }
+        .sign-space { height: 60px; }
         .sign-name { font-weight: bold; border-top: 1px solid #333; padding-top: 3px; display: inline-block; min-width: 160px; }
-        .sign-title { font-size: 9px; color: #444; }
+        .sign-title { font-size: 9px; }
+        {{-- Warna beda per pihak (biru = sisi customer/vendor, oranye = sisi
+             Alinea) — ngikutin contoh referensi kop surat yang dikasih. --}}
+        .sign-customer .sign-name, .sign-customer .sign-title { color: #1E6FA8; }
+        .sign-alinea .sign-name, .sign-alinea .sign-title { color: #B4530A; }
     </style>
 </head>
 <body>
@@ -66,6 +74,21 @@
         <tr>
             <td style="width: 55%;">
                 <img src="{{ public_path('images/alinea-logo.jpg') }}" class="logo">
+            </td>
+            <td style="width: 45%;">
+                <div class="doc-title">
+                    @if ($doc->type === 'po') Purchase Order
+                    @elseif ($doc->type === 'bast') BERITA ACARA<br>SERAH TERIMA
+                    @else {{ strtoupper($doc->type_label) }}
+                    @endif
+                </div>
+            </td>
+        </tr>
+        {{-- Baris ke-2 terpisah (bukan ditumpuk margin/height nebak-nebak) —
+             biar "Date"/"No" DIJAMIN sejajar persis sama baris
+             "PT. Alinea Terra Harmoni", soalnya dua-duanya di <tr> yang sama. --}}
+        <tr>
+            <td style="width: 55%; vertical-align: top;">
                 <div class="company-info">
                     <b>PT. Alinea Terra Harmoni</b><br>
                     Jl. H. Ung Kel. Utan Panjang, Kec. Kemayoran<br>
@@ -73,17 +96,7 @@
                     Email: sales@alineaterra.com &nbsp;|&nbsp; Phone: 0857-1673-7556
                 </div>
             </td>
-            <td style="width: 45%;">
-                {{-- Ditambahin margin-top biar blok Date/No sejajar sama baris
-                     "PT. Alinea Terra Harmoni" (bukan sejajar sama logo-nya)
-                     — konsisten kayak contoh kop surat referensi. --}}
-                <div style="margin-top: 38px;">
-                    <div class="doc-title">
-                        @if ($doc->type === 'po') Purchase Order
-                        @elseif ($doc->type === 'bast') BERITA ACARA<br>SERAH TERIMA
-                        @else {{ strtoupper($doc->type_label) }}
-                        @endif
-                    </div>
+            <td style="width: 45%; vertical-align: top;">
                 <table class="meta-table">
                     <tr><td class="meta-label">Date</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->doc_date->translatedFormat('l, d F Y') }}</td></tr>
                     <tr><td class="meta-label">{{ $doc->type_label }} No</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->number ?: 'DRAFT' }}</td></tr>
@@ -96,7 +109,6 @@
                         @if ($doc->ref_invoice_number)<tr><td class="meta-label">Ref. Invoice</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->ref_invoice_number }}</td></tr>@endif
                     @endif
                 </table>
-                </div>
             </td>
         </tr>
     </table>
@@ -208,8 +220,8 @@
                 </tr>
             @endforeach
             <tr class="total-row">
-                <td colspan="{{ $colCount - 1 }}" style="text-align: right; border: none;">Total</td>
-                <td class="money" style="border: none;">Rp {{ number_format($doc->total, 0, ',', '.') }}</td>
+                <td colspan="{{ $colCount - 1 }}" style="text-align: right;">Total</td>
+                <td class="money">Rp {{ number_format($doc->total, 0, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>
@@ -237,14 +249,14 @@
     @if ($doc->type === 'bast')
         <table class="sign-table">
             <tr>
-                <td>
+                <td class="sign-alinea">
                     <div>Pihak Pertama,</div>
                     <div class="sign-space"></div>
                     <div class="sign-name">{{ $doc->signatory_name }}</div><br>
                     <span class="sign-title">PT. Alinea Terra Harmoni</span>
                     @if ($doc->signatory_title)<br><span class="sign-title">{{ $doc->signatory_title }}</span>@endif
                 </td>
-                <td>
+                <td class="sign-customer">
                     <div>Pihak Kedua,</div>
                     <div class="sign-space"></div>
                     <div class="sign-name">{{ $doc->contact_name }}</div><br>
@@ -253,8 +265,8 @@
             </tr>
         </table>
     @elseif ($doc->type === 'po')
-        <div style="margin-top: 20px; font-size: 10px;">
-            <b>Disetujui oleh PT. Alinea Terra Harmoni</b>
+        <div class="sign-alinea" style="margin-top: 20px; font-size: 10px;">
+            <b style="color: #222;">Disetujui oleh PT. Alinea Terra Harmoni</b>
             <div class="sign-space"></div>
             <div class="sign-name">{{ $doc->signatory_name }}</div><br>
             <span class="sign-title">{{ $doc->signatory_title ?: 'Business Development' }}</span>
@@ -262,7 +274,7 @@
     @else
         <table class="sign-table">
             <tr>
-                <td>
+                <td class="sign-customer">
                     <div>Accepted by,</div>
                     <div class="sign-space"></div>
                     {{-- Kalau gak ada Contact Name, baris tanda tangan SENGAJA
@@ -272,10 +284,10 @@
                     <div class="sign-name">{{ $doc->contact_name }}</div><br>
                     <span class="sign-title">{{ $doc->customer?->name }}</span>
                 </td>
-                <td>
+                <td class="sign-alinea">
                     <div>Regards,</div>
                     @if ($doc->type === 'invoice')
-                        <div style="font-size: 9px; margin-top: 4px;">Materai 10.000</div>
+                        <div style="font-size: 9px; margin-top: 4px; color: #444;">Materai 10.000</div>
                     @endif
                     <div class="sign-space"></div>
                     <div class="sign-name">{{ $doc->signatory_name }}</div><br>
