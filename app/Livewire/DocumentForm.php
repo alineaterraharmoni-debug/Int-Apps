@@ -94,9 +94,46 @@ class DocumentForm extends Component
             'types' => Document::TYPES,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'vendors' => Vendor::orderBy('name')->get(['id', 'name']),
-            'opportunities' => Opportunity::with('customer:id,name')->orderByDesc('created_at')->limit(150)->get(['id', 'title', 'customer_id']),
+            'opportunities' => $this->opportunityOptions(),
             'contactOptions' => $this->contactOptions(),
         ]);
+    }
+
+    /**
+     * Opty yang bisa di-link nyesuain jenis dokumen:
+     * - Quotation & PO  : opty yang masih jalan (Leads/Develop) — belum Closing.
+     * - Invoice & BAST  : opty yang udah Closing WON, ATAU yang udah pernah
+     *                     dibuatin Quotation/PO (walau masih di stage Develop).
+     * - Lost SELALU dikecualikan dari semua jenis dokumen.
+     * Opty yang lagi ke-link ke dokumen ini (pas edit) SELALU ikut muncul
+     * di daftar apapun stage-nya, biar gak "ilang" pas buka form edit lama.
+     */
+    private function opportunityOptions()
+    {
+        return Opportunity::with('customer:id,name')
+            ->where(function ($q) {
+                if (in_array($this->type, ['quotation', 'po'], true)) {
+                    $q->whereIn('stage', ['leads', 'develop']);
+                } elseif (in_array($this->type, ['invoice', 'bast'], true)) {
+                    $q->where('stage', '!=', 'lost')
+                        ->where(function ($qq) {
+                            $qq->where('stage', 'won')
+                                ->orWhereHas('documents', fn ($qd) => $qd->whereIn('type', ['quotation', 'po']));
+                        });
+                } else {
+                    $q->where('stage', '!=', 'lost');
+                }
+
+                // Opty yang lagi ke-link (pas edit) selalu ikut muncul, apapun
+                // stage-nya sekarang — biar gak "ilang" dari dropdown pas
+                // buka form edit dokumen lama.
+                if ($this->opportunity_id) {
+                    $q->orWhere('id', $this->opportunity_id);
+                }
+            })
+            ->orderByDesc('created_at')
+            ->limit(150)
+            ->get(['id', 'title', 'customer_id']);
     }
 
     /**
@@ -151,10 +188,50 @@ class DocumentForm extends Component
     {
         $this->opportunity_id = $id;
 
-        if ($id && $this->type !== 'po') {
-            $opty = Opportunity::find($id);
-            if ($opty) {
-                $this->customer_id = $opty->customer_id;
+        if (! $id) {
+            return;
+        }
+
+        $opty = Opportunity::find($id);
+        if ($opty && $this->type !== 'po') {
+            $this->customer_id = $opty->customer_id;
+        }
+
+        // Invoice narik nomor referensi Quotation/PO final punya opty ini
+        // secara OTOMATIS, plus nyalin item dari Quotation-nya (tetep bisa
+        // diedit manual abis itu, gak ke-lock). Kalau PO-nya gak ada,
+        // field referensinya dibiarin kosong aja.
+        if ($this->type === 'invoice') {
+            $quotation = Document::where('opportunity_id', $id)
+                ->where('type', 'quotation')
+                ->where('status', 'final')
+                ->latest('doc_date')
+                ->first();
+
+            $po = Document::where('opportunity_id', $id)
+                ->where('type', 'po')
+                ->where('status', 'final')
+                ->latest('doc_date')
+                ->first();
+
+            $this->ref_quotation_number = $quotation?->number ?? '';
+            $this->ref_po_number = $po?->number ?? '';
+
+            if ($quotation) {
+                $quotation->load('items');
+                $this->items = $quotation->items->map(fn ($i) => [
+                    'group_label' => $i->group_label,
+                    'product_type' => $i->product_type,
+                    'description' => $i->description,
+                    'qty' => (string) $i->qty,
+                    'unit' => $i->unit,
+                    'credits_required' => $i->credits_required,
+                    'unit_price' => (string) $i->unit_price,
+                ])->toArray();
+
+                if (empty($this->items)) {
+                    $this->addItem();
+                }
             }
         }
     }
@@ -211,11 +288,15 @@ class DocumentForm extends Component
         // butuh barang ini) SEKARANG ikut disimpen juga.
         $rules['vendor_id'] = $this->type === 'po' ? 'required|exists:vendors,id' : 'nullable|exists:vendors,id';
         $rules['customer_id'] = $this->type !== 'po' ? 'required|exists:customers,id' : 'nullable|exists:customers,id';
+        // Invoice WAJIB nge-link ke opty — soalnya referensi Quo/PO & item-nya
+        // narik otomatis dari situ.
+        $rules['opportunity_id'] = $this->type === 'invoice' ? 'required|exists:opportunities,id' : 'nullable|exists:opportunities,id';
 
         $data = $this->validate($rules, [], [
             'number' => 'Nomor Dokumen',
             'vendor_id' => 'Vendor',
             'customer_id' => 'Customer',
+            'opportunity_id' => 'Link ke Opty',
         ]);
 
         $data['status'] = $status;

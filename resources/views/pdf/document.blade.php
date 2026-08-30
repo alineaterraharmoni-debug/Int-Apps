@@ -25,18 +25,25 @@
         .recipient-box { background: #E9F6FC; padding: 4px 8px; font-weight: bold; font-size: 9.5px; color: #0A1628; margin-bottom: 6px; }
         .recipient-table td { padding: 1px 0; font-size: 10px; vertical-align: top; }
         .recipient-label { width: 90px; color: #555; }
+        {{-- Alamat dikasih batas lebar (kayak alamat perusahaan di kop surat
+             sebelah kiri) biar wrap jadi beberapa baris pendek, bukan satu
+             baris panjang ngebentang selebar halaman. --}}
         .recipient-address { padding-top: 2px !important; }
+        .recipient-address-inner { max-width: 340px; }
 
         .two-col td { width: 50%; vertical-align: top; padding-right: 20px; }
 
+        {{-- Border per-sel item DIHAPUS total — sekarang cuma ada garis tebal
+             di bawah judul kolom (th) dan di atas baris Grand Total, biar
+             tabelnya keliatan lebih ringan/rapi (gak kotak-kotak). --}}
         table.items { margin-top: 16px; }
-        table.items th { background: #F6B01A; color: #1a1a1a; font-size: 9.5px; text-align: left; padding: 6px 6px; border: 1px solid #E0A000; }
-        table.items td { font-size: 9.5px; padding: 5px 6px; border: 1px solid #E5E7EB; vertical-align: top; }
+        table.items th { background: #F6B01A; color: #1a1a1a; font-size: 9.5px; text-align: left; padding: 6px 6px; border: none; border-bottom: 2px solid #000; }
+        table.items td { font-size: 9.5px; padding: 5px 6px; border: none; vertical-align: top; }
         table.items .num { text-align: center; }
         table.items .money { text-align: right; white-space: nowrap; }
-        .group-row td { background: #FAFAFA; font-weight: bold; font-size: 9.5px; border: 1px solid #E5E7EB; }
+        .group-row td { background: #FAFAFA; font-weight: bold; font-size: 9.5px; border: none; }
         .desc-detail { font-size: 9px; color: #555; margin-top: 2px; white-space: pre-line; }
-        .total-row td { font-weight: bold; font-size: 11px; border-top: 2px solid #222; }
+        .total-row td { font-weight: bold; font-size: 11px; border-top: 2px solid #000; }
 
         .terms-box { border: 1px solid #999; padding: 8px 10px; margin-top: 18px; font-size: 9px; }
         .terms-box .title { font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
@@ -67,12 +74,16 @@
                 </div>
             </td>
             <td style="width: 45%;">
-                <div class="doc-title">
-                    @if ($doc->type === 'po') Purchase Order
-                    @elseif ($doc->type === 'bast') BERITA ACARA<br>SERAH TERIMA
-                    @else {{ strtoupper($doc->type_label) }}
-                    @endif
-                </div>
+                {{-- Ditambahin margin-top biar blok Date/No sejajar sama baris
+                     "PT. Alinea Terra Harmoni" (bukan sejajar sama logo-nya)
+                     — konsisten kayak contoh kop surat referensi. --}}
+                <div style="margin-top: 38px;">
+                    <div class="doc-title">
+                        @if ($doc->type === 'po') Purchase Order
+                        @elseif ($doc->type === 'bast') BERITA ACARA<br>SERAH TERIMA
+                        @else {{ strtoupper($doc->type_label) }}
+                        @endif
+                    </div>
                 <table class="meta-table">
                     <tr><td class="meta-label">Date</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->doc_date->translatedFormat('l, d F Y') }}</td></tr>
                     <tr><td class="meta-label">{{ $doc->type_label }} No</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->number ?: 'DRAFT' }}</td></tr>
@@ -85,6 +96,7 @@
                         @if ($doc->ref_invoice_number)<tr><td class="meta-label">Ref. Invoice</td><td class="meta-colon">:</td><td class="meta-value">{{ $doc->ref_invoice_number }}</td></tr>@endif
                     @endif
                 </table>
+                </div>
             </td>
         </tr>
     </table>
@@ -106,7 +118,7 @@
                     <table class="recipient-table">
                         <tr><td class="recipient-label">Nama Perusahaan</td><td>: {{ $doc->customer?->name }}</td></tr>
                         @if ($doc->contact_name)<tr><td class="recipient-label">Contact Name</td><td>: {{ $doc->contact_name }}</td></tr>@endif
-                        @if ($doc->customer?->address)<tr><td colspan="2" class="recipient-address">{{ $doc->customer->address }}</td></tr>@endif
+                        @if ($doc->customer?->address)<tr><td colspan="2" class="recipient-address"><div class="recipient-address-inner">{{ $doc->customer->address }}</div></td></tr>@endif
                     </table>
                 </td>
             </tr>
@@ -132,7 +144,7 @@
                 {{-- colspan=2 (bukan kolom kedua doang) biar alamatnya sejajar
                      sama teks "Account Name"/"Contact Name", bukan nempel di
                      bawah titik dua. --}}
-                <tr><td colspan="2" class="recipient-address">{{ $recipientAddress }}</td></tr>
+                <tr><td colspan="2" class="recipient-address"><div class="recipient-address-inner">{{ $recipientAddress }}</div></td></tr>
             @endif
         </table>
 

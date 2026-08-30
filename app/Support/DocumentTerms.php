@@ -24,7 +24,11 @@ class DocumentTerms
                 ."   Bank Mandiri a/n PT. ALINEA TERRA HARMONI\n"
                 ."   1230013333010",
 
-            'po' => "Dengan Hormat,\nSaat ini kami membutuhkan pembelian lisensi/produk untuk customer di bawah dengan rincian biaya sebagai berikut.",
+            // Terms buat PO SENGAJA dikosongin default-nya — paragraf pembuka
+            // "Dengan Hormat..." udah otomatis muncul di PDF (lihat
+            // pdf/document.blade.php), jadi field Terms di sini murni buat
+            // Catatan tambahan aja kalau perlu, gak usah dobel.
+            'po' => '',
 
             'bast' => "Dengan ditandatanganinya Berita Acara Serah Terima ini, Pihak Kedua menyatakan bahwa pekerjaan/barang tersebut di atas telah diterima dengan baik dan sesuai, serta menjadi dasar penagihan pelunasan pembayaran sesuai referensi Invoice terkait.",
 

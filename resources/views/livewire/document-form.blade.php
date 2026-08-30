@@ -38,7 +38,14 @@
             </div>
 
             <div>
-                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Link ke Opty (opsional)</label>
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">
+                    Link ke Opty
+                    @if ($type === 'invoice')
+                        <span class="text-rose-500">*</span>
+                    @else
+                        <span class="font-normal text-gray-400">(opsional)</span>
+                    @endif
+                </label>
                 <div
                     class="relative"
                     x-data="{
@@ -67,6 +74,10 @@
                         <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">Gak ketemu.</div>
                     </div>
                 </div>
+                @error('opportunity_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                @if ($type === 'invoice')
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Pilih opty biar No. Quotation/PO referensi & list item ke-isi otomatis (tetep bisa diedit manual).</p>
+                @endif
             </div>
 
             @if ($type === 'po')

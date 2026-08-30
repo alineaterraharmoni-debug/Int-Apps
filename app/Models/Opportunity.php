@@ -121,6 +121,11 @@ class Opportunity extends Model
         return $this->belongsToMany(TeamMember::class, 'opportunity_engineer');
     }
 
+    public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
     // GP nominal dihitung otomatis dari TCV x GP%
     public function getGpNominalAttribute(): float
     {
