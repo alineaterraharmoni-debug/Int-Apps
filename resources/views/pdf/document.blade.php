@@ -205,7 +205,7 @@
                 $totalHighlight = $doc->type === 'invoice' && $doc->taxes->isEmpty() && $doc->payment_scheme !== 'staged';
             @endphp
             <tr class="total-row">
-                <td colspan="{{ $colCount - 4 }}" style="border-top: 2px solid #000;"></td>
+                <td colspan="{{ $colCount }}" style="border-top: 2px solid #000;"></td>
                 <td style="text-align: right; {{ $totalHighlight ? 'background: #F3F4F6;' : '' }}">Total</td>
                 <td class="money" style="{{ $totalHighlight ? 'background: #F3F4F6;' : '' }}">@include('pdf.partials.money', ['amount' => $doc->total])</td>
             </tr>
