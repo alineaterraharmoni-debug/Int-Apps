@@ -78,6 +78,7 @@ class DocumentForm extends Component
             $this->taxes = $doc->taxes->map(fn ($t) => [
                 'label' => $t->label,
                 'type' => $t->type,
+                'direction' => $t->direction,
                 'value' => (string) $t->value,
             ])->toArray();
             $this->paymentTerms = $doc->paymentTerms->map(fn ($p) => [
