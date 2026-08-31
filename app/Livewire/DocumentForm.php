@@ -60,6 +60,7 @@ class DocumentForm extends Component
             $this->items = $doc->items->map(fn ($i) => [
                 'group_label' => $i->group_label,
                 'product_type' => $i->product_type,
+                'item_name' => $i->item_name,
                 'description' => $i->description,
                 'qty' => (string) $i->qty,
                 'unit' => $i->unit,
@@ -168,6 +169,7 @@ class DocumentForm extends Component
         $this->items[] = [
             'group_label' => '',
             'product_type' => '',
+            'item_name' => '',
             'description' => '',
             'qty' => '1',
             'unit' => '',
@@ -222,6 +224,7 @@ class DocumentForm extends Component
                 $this->items = $quotation->items->map(fn ($i) => [
                     'group_label' => $i->group_label,
                     'product_type' => $i->product_type,
+                    'item_name' => $i->item_name,
                     'description' => $i->description,
                     'qty' => (string) $i->qty,
                     'unit' => $i->unit,
@@ -279,7 +282,8 @@ class DocumentForm extends Component
             'signatory_name' => 'required|string|max:150',
             'signatory_title' => 'nullable|string|max:100',
             'items' => 'required|array|min:1',
-            'items.*.description' => 'required|string',
+            'items.*.item_name' => 'required|string|max:150',
+            'items.*.description' => 'nullable|string',
             'items.*.qty' => 'required|numeric|min:0',
             'items.*.unit_price' => 'required|numeric|min:0',
         ];
@@ -297,6 +301,7 @@ class DocumentForm extends Component
             'vendor_id' => 'Vendor',
             'customer_id' => 'Customer',
             'opportunity_id' => 'Link ke Opty',
+            'items.*.item_name' => 'Nama Item',
         ]);
 
         $data['status'] = $status;
@@ -330,7 +335,8 @@ class DocumentForm extends Component
             $doc->items()->create([
                 'group_label' => $item['group_label'] ?: null,
                 'product_type' => $item['product_type'] ?: null,
-                'description' => $item['description'],
+                'item_name' => $item['item_name'],
+                'description' => $item['description'] ?: null,
                 'qty' => $item['qty'],
                 'unit' => $item['unit'] ?: null,
                 'credits_required' => $item['credits_required'] !== '' ? $item['credits_required'] : null,

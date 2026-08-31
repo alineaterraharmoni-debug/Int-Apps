@@ -228,8 +228,18 @@
                             @endif
                         </div>
 
-                        <textarea wire:model="items.{{ $i }}.description" rows="2" placeholder="Deskripsi item..." class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm mb-2"></textarea>
-                        @error("items.{$i}.description") <p class="text-xs text-red-500 mb-2">{{ $message }}</p> @enderror
+                        <div class="mb-2">
+                            <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nama Item <span class="text-rose-500">*</span></label>
+                            <input type="text" wire:model="items.{{ $i }}.item_name" placeholder="cth. TrendAI Flex (credits): VOMMMMMMXXLCZZZ" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm font-semibold">
+                            @error("items.{$i}.item_name") <p class="text-xs text-red-500 mt-0.5">{{ $message }}</p> @enderror
+                            <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Ditampilin BOLD di PDF sebagai nama item.</p>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Deskripsi Item <span class="font-normal">(opsional)</span></label>
+                            <textarea wire:model="items.{{ $i }}.description" rows="2" placeholder="cth. Endpoint Security - Essential  65 credits per unit" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm"></textarea>
+                            <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Kalau dikosongin, baris deskripsi ini gak bakal ditampilin di PDF.</p>
+                        </div>
 
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
                             <div>

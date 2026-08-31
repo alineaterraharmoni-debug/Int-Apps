@@ -22,9 +22,14 @@
         .meta-value { text-align: left; white-space: nowrap; }
         .divider { border-top: 2px solid #19A9DB; margin: 10px 0 14px; }
 
-        .recipient-box { background: #E9F6FC; padding: 4px 8px; font-weight: bold; font-size: 9.5px; color: #0A1628; margin-bottom: 6px; }
+        {{-- display:inline-block — sebelumnya div block biasa otomatis
+             ngambil lebar penuh kolomnya, jadi background birunya kepanjangan
+             ngebentang. Sekarang cuma sepanjang teks "Quote to" doang, kayak
+             badge di contoh referensi. --}}
+        .recipient-box { display: inline-block; background: #E9F6FC; padding: 4px 8px; font-weight: bold; font-size: 9.5px; color: #0A1628; margin-bottom: 6px; }
         .recipient-table td { padding: 1px 0; font-size: 10px; vertical-align: top; }
         .recipient-label { width: 90px; color: #555; }
+        .recipient-label-bold { font-weight: bold; color: #222; }
         {{-- Alamat dikasih batas lebar (kayak alamat perusahaan di kop surat
              sebelah kiri) biar wrap jadi beberapa baris pendek, bukan satu
              baris panjang ngebentang selebar halaman. --}}
@@ -136,10 +141,15 @@
             diserahterimakan dengan baik dan diterima dalam kondisi sesuai dengan dokumen referensi di atas.
         </p>
     @else
-        <div class="recipient-box">{{ $doc->type === 'po' ? 'Kepada Yth.' : 'Quote to' }}</div>
+        <div class="recipient-box">
+            @if ($doc->type === 'po') Kepada Yth.
+            @elseif ($doc->type === 'invoice') Bill to
+            @else Quote to
+            @endif
+        </div>
         <table class="recipient-table">
             <tr>
-                <td class="recipient-label">Account Name</td>
+                <td class="recipient-label recipient-label-bold">Account Name</td>
                 <td>: <b>{{ $doc->recipient_name }}</b></td>
             </tr>
             @if ($doc->contact_name)
@@ -161,10 +171,6 @@
                 Dengan Hormat,<br>
                 Saat ini kami membutuhkan pembelian lisensi/produk untuk Customer <b>{{ $doc->customer->name }}</b> dengan rincian biaya sebagai berikut:
             </p>
-        @endif
-
-        @if ($doc->type === 'invoice' && $doc->ref_quotation_number)
-            <p style="margin-top: 8px; font-size: 9px; color: #555;">Sesuai dengan Quotation No. {{ $doc->ref_quotation_number }}</p>
         @endif
     @endif
 
@@ -202,8 +208,14 @@
                         <td>{{ $item->product_type }}</td>
                     @endif
                     <td>
-                        {{ \Illuminate\Support\Str::of($item->description)->explode("\n")->first() }}
-                        @if (\Illuminate\Support\Str::of($item->description)->explode("\n")->count() > 1)
+                        {{-- Nama Item (BOLD) sekarang field terpisah dari Deskripsi.
+                             Fallback ke baris pertama $description buat data lama
+                             yang belum ada item_name-nya. Deskripsi cuma
+                             ditampilin kalau beneran diisi (gak wajib lagi). --}}
+                        <b>{{ $item->item_name ?: \Illuminate\Support\Str::of($item->description)->explode("\n")->first() }}</b>
+                        @if ($item->item_name && $item->description)
+                            <div class="desc-detail">{{ $item->description }}</div>
+                        @elseif (! $item->item_name && \Illuminate\Support\Str::of($item->description)->explode("\n")->count() > 1)
                             <div class="desc-detail">{{ \Illuminate\Support\Str::of($item->description)->explode("\n")->slice(1)->implode("\n") }}</div>
                         @endif
                     </td>
@@ -288,9 +300,6 @@
                 <td>
                     <div style="width: 190px; margin-left: auto;">
                         <div>Regards,</div>
-                        @if ($doc->type === 'invoice')
-                            <div style="font-size: 9px; margin-top: 4px; color: #444;">Materai 10.000</div>
-                        @endif
                         <div class="sign-space"></div>
                         <div class="sign-name">{{ $doc->signatory_name }}</div><br>
                         <span class="sign-title">PT. Alinea Terra Harmoni</span>
