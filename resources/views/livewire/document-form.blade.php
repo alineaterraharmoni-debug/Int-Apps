@@ -51,22 +51,37 @@
                     x-data="{
                         open: false,
                         q: {{ \Illuminate\Support\Js::from($opportunity_id ? optional($opportunities->firstWhere('id', $opportunity_id))->title : '') }},
+                        confirmedLabel: {{ \Illuminate\Support\Js::from($opportunity_id ? optional($opportunities->firstWhere('id', $opportunity_id))->title : '') }},
                         items: {{ \Illuminate\Support\Js::from($opportunities->map(fn ($o) => ['id' => $o->id, 'title' => $o->title.' ('.($o->customer?->name ?? '-').')'])->values()) }},
                         get filtered() {
                             if (! this.q) return this.items;
                             const s = this.q.toLowerCase();
                             return this.items.filter(o => o.title.toLowerCase().includes(s));
                         },
-                        pick(o) { this.q = o.title; this.open = false; $wire.pickOpportunity(o.id); }
+                        // Buka dropdown DAN kosongin kotak pencarian — biar
+                        // daftar LENGKAP langsung keliatan lagi (sebelumnya
+                        // kotak masih keisi nama yang lama, jadi listnya
+                        // ke-filter cuma nyisain yang mirip doang).
+                        openList() { this.open = true; this.q = ''; },
+                        pick(o) { this.confirmedLabel = o.title; this.q = o.title; this.open = false; $wire.pickOpportunity(o.id); },
+                        // Ditutup TANPA milih apa-apa baru -> kotaknya balik
+                        // nampilin nilai yang masih beneran ke-pilih di
+                        // server, jangan dibiarin blank ngambang.
+                        cancel() { this.open = false; this.q = this.confirmedLabel; },
+                        clear() { this.confirmedLabel = ''; this.q = ''; this.open = false; $wire.pickOpportunity(null); }
                     }"
-                    x-on:click.outside="open = false"
+                    x-on:click.outside="cancel()"
                 >
-                    <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
-                           x-on:input="open = true; if (! $event.target.value) { $wire.pickOpportunity(null); }"
+                    <input type="text" x-model="q"
+                           x-on:focus="openList()" x-on:click="openList()"
+                           x-on:input="open = true"
                            x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
-                           x-on:keydown.escape="open = false"
+                           x-on:keydown.escape="cancel()"
                            placeholder="Cari opty... (kosongin kalau gak dilink)" autocomplete="off"
-                           class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                           class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm pr-8">
+                    <button type="button" x-show="confirmedLabel && ! open" x-cloak x-on:click="clear()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600 hover:text-red-500" title="Lepas link ke opty ini" style="display:none;">
+                        <x-icon name="x" class="w-3.5 h-3.5" />
+                    </button>
                     <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                         <template x-for="o in filtered" :key="o.id">
                             <div x-on:mousedown.prevent="pick(o)" x-text="o.title" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"></div>
@@ -92,20 +107,24 @@
                             x-data="{
                                 open: false,
                                 q: {{ \Illuminate\Support\Js::from($vendor_id ? optional($vendors->firstWhere('id', $vendor_id))->name : '') }},
+                                confirmedLabel: {{ \Illuminate\Support\Js::from($vendor_id ? optional($vendors->firstWhere('id', $vendor_id))->name : '') }},
                                 items: {{ \Illuminate\Support\Js::from($vendors->map(fn ($v) => ['id' => $v->id, 'name' => $v->name])->values()) }},
                                 get filtered() {
                                     if (! this.q) return this.items;
                                     const s = this.q.toLowerCase();
                                     return this.items.filter(v => v.name.toLowerCase().includes(s));
                                 },
-                                pick(v) { this.q = v.name; this.open = false; $wire.pickVendor(v.id); }
+                                openList() { this.open = true; this.q = ''; },
+                                pick(v) { this.confirmedLabel = v.name; this.q = v.name; this.open = false; $wire.pickVendor(v.id); },
+                                cancel() { this.open = false; this.q = this.confirmedLabel; }
                             }"
-                            x-on:click.outside="open = false"
+                            x-on:click.outside="cancel()"
                         >
-                            <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
-                                   x-on:input="open = true; if (! $event.target.value) { $wire.pickVendor(null); }"
+                            <input type="text" x-model="q"
+                                   x-on:focus="openList()" x-on:click="openList()"
+                                   x-on:input="open = true"
                                    x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
-                                   x-on:keydown.escape="open = false"
+                                   x-on:keydown.escape="cancel()"
                                    placeholder="Cari vendor..." autocomplete="off"
                                    class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                             <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
@@ -148,20 +167,24 @@
                             x-data="{
                                 open: false,
                                 q: {{ \Illuminate\Support\Js::from($customer_id ? optional($customers->firstWhere('id', $customer_id))->name : '') }},
+                                confirmedLabel: {{ \Illuminate\Support\Js::from($customer_id ? optional($customers->firstWhere('id', $customer_id))->name : '') }},
                                 items: {{ \Illuminate\Support\Js::from($customers->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->values()) }},
                                 get filtered() {
                                     if (! this.q) return this.items;
                                     const s = this.q.toLowerCase();
                                     return this.items.filter(c => c.name.toLowerCase().includes(s));
                                 },
-                                pick(c) { this.q = c.name; this.open = false; $wire.pickCustomer(c.id); }
+                                openList() { this.open = true; this.q = ''; },
+                                pick(c) { this.confirmedLabel = c.name; this.q = c.name; this.open = false; $wire.pickCustomer(c.id); },
+                                cancel() { this.open = false; this.q = this.confirmedLabel; }
                             }"
-                            x-on:click.outside="open = false"
+                            x-on:click.outside="cancel()"
                         >
-                            <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
-                                   x-on:input="open = true; if (! $event.target.value) { $wire.pickCustomer(null); }"
+                            <input type="text" x-model="q"
+                                   x-on:focus="openList()" x-on:click="openList()"
+                                   x-on:input="open = true"
                                    x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
-                                   x-on:keydown.escape="open = false"
+                                   x-on:keydown.escape="cancel()"
                                    placeholder="Cari customer..." autocomplete="off"
                                    class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                             <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
@@ -258,7 +281,7 @@
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Qty</label>
-                                <input type="number" step="0.01" x-model="qty" x-on:input="$wire.set('items.{{ $i }}.qty', qty, false)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="0.01" x-model="qty" x-on:input="$wire.set('items.{{ $i }}.qty', qty, false)" x-on:input.debounce.500ms="$wire.set('items.{{ $i }}.qty', qty, true)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit</label>
@@ -270,7 +293,7 @@
                             </div>
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit Price (Rp)</label>
-                                <input type="number" step="1" x-model="price" x-on:input="$wire.set('items.{{ $i }}.unit_price', price, false)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="1" x-model="price" x-on:input="$wire.set('items.{{ $i }}.unit_price', price, false)" x-on:input.debounce.500ms="$wire.set('items.{{ $i }}.unit_price', price, true)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Amount</label>
@@ -308,18 +331,18 @@
                             </div>
                             <div class="w-24">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Tipe</label>
-                                <select wire:model="taxes.{{ $i }}.type" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <select wire:model.live="taxes.{{ $i }}.type" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                                     <option value="percentage">% Subtotal</option>
                                     <option value="fixed">Rp Tetap</option>
                                 </select>
                             </div>
                             <div class="w-20">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nilai</label>
-                                <input type="number" step="0.01" wire:model="taxes.{{ $i }}.value" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="0.01" wire:model.live.debounce.500ms="taxes.{{ $i }}.value" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div class="w-32">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Arah</label>
-                                <select wire:model="taxes.{{ $i }}.direction" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <select wire:model.live="taxes.{{ $i }}.direction" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                                     <option value="add">+ Tambah (PPN dst)</option>
                                     <option value="subtract">− Kurang (PPh dst)</option>
                                 </select>
@@ -364,7 +387,7 @@
                                 </div>
                                 <div class="w-24">
                                     <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">% Grand Total</label>
-                                    <input type="number" step="0.01" wire:model="paymentTerms.{{ $i }}.percentage" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                    <input type="number" step="0.01" wire:model.live.debounce.500ms="paymentTerms.{{ $i }}.percentage" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                                 </div>
                                 <div class="w-28 text-right shrink-0">
                                     <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nominal</label>

@@ -49,11 +49,10 @@
         table.items .money { text-align: right; white-space: nowrap; width: 18%; }
         .group-row td { background: #FAFAFA; font-weight: bold; font-size: 9.5px; border: none; }
         .desc-detail { font-size: 9px; color: #555; margin-top: 2px; white-space: pre-line; }
-        {{-- Selector DIPERSPESIFIK (table.items .total-row td, bukan cuma
-             .total-row td) — soalnya rule "table.items td { border:none }"
-             di atas lebih spesifik dan bakal menang/nge-cancel border-top
-             ini kalau selector-nya kalah spesifik. --}}
-        table.items .total-row td { font-weight: bold; font-size: 11px; border: none; border-top: 2px solid #000 !important; }
+        {{-- Garis di atas Total/Grand Total DIHAPUS — sekarang cuma bold,
+             gak ada border-top lagi (biar gak keliatan kayak 2 garis
+             nempel-nempel kalau Total & Grand Total muncul berdekatan). --}}
+        table.items .total-row td { font-weight: bold; font-size: 11px; border: none; }
         {{-- Buat baris DP/Termin di bawah Grand Total — BOLD kayak Grand
              Total, tapi TANPA garis border (garis cuma buat Grand Total). --}}
         table.items .bold-row td { font-weight: bold; font-size: 11px; border: none; }
