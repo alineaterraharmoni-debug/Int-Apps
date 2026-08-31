@@ -34,7 +34,7 @@
         table.items .money { text-align: right; white-space: nowrap; width: 18%; }
         .group-row td { background: #FAFAFA; font-weight: bold; font-size: 9.5px; border: none; }
         .desc-detail { font-size: 9px; color: #555; margin-top: 2px; white-space: pre-line; }
-        table.items .total-row td { font-weight: bold; font-size: 11px; border: none; border-top: 2px solid #000 !important; }
+        table.items .total-row td { font-weight: bold; font-size: 11px; border: none; }
         table.items .bold-row td { font-weight: bold; font-size: 11px; border: none; }
         table.items .highlight-row td { background: #F3F4F6; }
 
@@ -201,9 +201,13 @@
                     <td class="money">@include('pdf.partials.money', ['amount' => $item->amount])</td>
                 </tr>
             @endforeach
-            <tr class="total-row {{ ($doc->type === 'invoice' && $doc->taxes->isEmpty() && $doc->payment_scheme !== 'staged') ? 'highlight-row' : '' }}">
-                <td colspan="{{ $colCount - 1 }}" style="text-align: right;">Total</td>
-                <td class="money">@include('pdf.partials.money', ['amount' => $doc->total])</td>
+            @php
+                $totalHighlight = $doc->type === 'invoice' && $doc->taxes->isEmpty() && $doc->payment_scheme !== 'staged';
+            @endphp
+            <tr class="total-row">
+                <td colspan="{{ $colCount - 2 }}"></td>
+                <td style="text-align: right; {{ $totalHighlight ? 'background: #F3F4F6;' : '' }}">Total</td>
+                <td class="money" style="{{ $totalHighlight ? 'background: #F3F4F6;' : '' }}">@include('pdf.partials.money', ['amount' => $doc->total])</td>
             </tr>
 
             @if ($doc->type === 'invoice')
@@ -215,19 +219,22 @@
                 @endforeach
 
                 @if ($doc->taxes->count())
-                    <tr class="total-row highlight-row">
-                        <td colspan="{{ $colCount - 1 }}" style="text-align: right;">Grand Total</td>
-                        <td class="money">@include('pdf.partials.money', ['amount' => $doc->grand_total])</td>
+                    @php $gtHighlight = $doc->payment_scheme !== 'staged'; @endphp
+                    <tr class="total-row">
+                        <td colspan="{{ $colCount - 2 }}"></td>
+                        <td style="text-align: right; border-top: 2px solid #000; {{ $gtHighlight ? 'background: #F3F4F6;' : '' }}">Grand Total</td>
+                        <td class="money" style="border-top: 2px solid #000; {{ $gtHighlight ? 'background: #F3F4F6;' : '' }}">@include('pdf.partials.money', ['amount' => $doc->grand_total])</td>
                     </tr>
                 @endif
 
                 @if ($doc->payment_scheme === 'staged')
                     @foreach ($doc->paymentTerms as $term)
-                        <tr class="bold-row highlight-row">
-                            <td colspan="{{ $colCount - 1 }}" style="text-align: right;">
+                        <tr class="bold-row">
+                            <td colspan="{{ $colCount - 2 }}"></td>
+                            <td style="text-align: right; background: #F3F4F6;">
                                 {{ $term->label }}{{ $term->percentage ? ' '.rtrim(rtrim(number_format($term->percentage, 2), '0'), '.').'%' : '' }}
                             </td>
-                            <td class="money">@include('pdf.partials.money', ['amount' => $term->amount])</td>
+                            <td class="money" style="background: #F3F4F6;">@include('pdf.partials.money', ['amount' => $term->amount])</td>
                         </tr>
                     @endforeach
                 @endif
