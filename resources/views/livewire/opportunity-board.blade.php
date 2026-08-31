@@ -558,7 +558,7 @@
                                             }"
                                             x-on:click.outside="open = false"
                                         >
-                                            <input type="text" x-model="q" x-on:focus="open = true"
+                                            <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
                                                    x-on:input="open = true; $wire.set('customer_id', null, false)"
                                                    placeholder="Ketik buat cari customer..." autocomplete="off"
                                                    class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">

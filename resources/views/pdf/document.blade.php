@@ -46,7 +46,7 @@
         table.items th { background: #F6B01A; color: #1a1a1a; font-size: 9.5px; text-align: center; padding: 6px 6px; border: none; border-bottom: 2px solid #000; }
         table.items td { font-size: 9.5px; padding: 5px 6px; border: none; vertical-align: top; }
         table.items .num { text-align: center; }
-        table.items .money { text-align: right; white-space: nowrap; }
+        table.items .money { text-align: right; white-space: nowrap; width: 18%; }
         .group-row td { background: #FAFAFA; font-weight: bold; font-size: 9.5px; border: none; }
         .desc-detail { font-size: 9px; color: #555; margin-top: 2px; white-space: pre-line; }
         {{-- Selector DIPERSPESIFIK (table.items .total-row td, bukan cuma
@@ -54,6 +54,9 @@
              di atas lebih spesifik dan bakal menang/nge-cancel border-top
              ini kalau selector-nya kalah spesifik. --}}
         table.items .total-row td { font-weight: bold; font-size: 11px; border: none; border-top: 2px solid #000 !important; }
+        {{-- Buat baris DP/Termin di bawah Grand Total — BOLD kayak Grand
+             Total, tapi TANPA garis border (garis cuma buat Grand Total). --}}
+        table.items .bold-row td { font-weight: bold; font-size: 11px; border: none; }
 
         .terms-box { border: 1px solid #999; padding: 8px 10px; margin-top: 18px; font-size: 9px; }
         .terms-box .title { font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
@@ -224,64 +227,52 @@
                     @if ($doc->type !== 'bast' && $doc->has_credits)
                         <td class="num">{{ $item->credits_required ?? '-' }}</td>
                     @endif
-                    <td class="money">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
-                    <td class="money">Rp {{ number_format($item->amount, 0, ',', '.') }}</td>
+                    <td class="money">@include('pdf.partials.money', ['amount' => $item->unit_price])</td>
+                    <td class="money">@include('pdf.partials.money', ['amount' => $item->amount])</td>
                 </tr>
             @endforeach
             <tr class="total-row">
                 <td colspan="{{ $colCount - 1 }}" style="text-align: right;">Total</td>
-                <td class="money">Rp {{ number_format($doc->total, 0, ',', '.') }}</td>
+                <td class="money">@include('pdf.partials.money', ['amount' => $doc->total])</td>
             </tr>
-        </tbody>
-    </table>
 
-    {{-- Pajak (PPN/PPh/lain-lain) + Grand Total — khusus Invoice, ditaro di
-         bawah Total, sejajar kanan (satu kolom sama Amount di tabel item). --}}
-    @if ($doc->type === 'invoice' && $doc->taxes->count())
-        <table style="width: 100%; margin-top: 2px;">
-            <tr>
-                <td style="width: 65%;"></td>
-                <td style="width: 35%;">
-                    <table style="width: 100%;">
-                        @foreach ($doc->taxes as $tax)
-                            <tr>
-                                <td style="padding: 3px 6px; font-size: 9.5px;">{{ $tax->label }}</td>
-                                <td style="padding: 3px 6px; font-size: 9.5px; text-align: right; white-space: nowrap;">Rp {{ number_format($tax->amount, 0, ',', '.') }}</td>
-                            </tr>
-                        @endforeach
-                        <tr>
-                            <td style="padding: 6px; font-weight: bold; font-size: 11px; border-top: 2px solid #000;">Grand Total</td>
-                            <td style="padding: 6px; font-weight: bold; font-size: 11px; border-top: 2px solid #000; text-align: right; white-space: nowrap;">Rp {{ number_format($doc->grand_total, 0, ',', '.') }}</td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    @endif
-
-    {{-- Skema Pembayaran (DP/Termin) — khusus Invoice, cuma muncul kalau
-         bukan Lunas dan beneran ada tahapan yang diisi. --}}
-    @if ($doc->type === 'invoice' && $doc->payment_scheme !== 'full' && $doc->paymentTerms->count())
-        <div class="terms-box" style="margin-top: 14px;">
-            <div class="title">Skema Pembayaran ({{ $doc->payment_scheme === 'dp' ? 'DP / Down Payment' : 'Termin' }}) :</div>
-            <table style="width: 100%; margin-top: 4px;">
-                <tr style="font-size: 9px; color: #555;">
-                    <td style="padding: 2px 4px;">Tahap</td>
-                    <td style="padding: 2px 4px; text-align: right;">Persentase</td>
-                    <td style="padding: 2px 4px; text-align: right;">Nominal</td>
-                    <td style="padding: 2px 4px; text-align: right;">Jatuh Tempo</td>
-                </tr>
-                @foreach ($doc->paymentTerms as $term)
-                    <tr style="font-size: 9.5px;">
-                        <td style="padding: 2px 4px;">{{ $term->label }}</td>
-                        <td style="padding: 2px 4px; text-align: right;">{{ $term->percentage ? rtrim(rtrim(number_format($term->percentage, 2), '0'), '.').'%' : '-' }}</td>
-                        <td style="padding: 2px 4px; text-align: right; white-space: nowrap;">Rp {{ number_format($term->amount, 0, ',', '.') }}</td>
-                        <td style="padding: 2px 4px; text-align: right;">{{ $term->due_date?->translatedFormat('d M Y') ?? '-' }}</td>
+            {{-- Pajak (PPN/PPh/lain-lain) — baris BIASA (gak bold), masih di
+                 dalem tabel yang SAMA persis kayak Total, jadi kolom Rp/angka-nya
+                 dijamin sejajar sempurna (bukan tabel terpisah kayak sebelumnya
+                 yang proporsi lebar kolomnya beda-beda). --}}
+            @if ($doc->type === 'invoice')
+                @foreach ($doc->taxes as $tax)
+                    <tr>
+                        <td colspan="{{ $colCount - 1 }}" style="text-align: right; color: #444;">{{ $tax->label }}</td>
+                        <td class="money" style="color: #444;">@include('pdf.partials.money', ['amount' => $tax->amount, 'negative' => $tax->direction === 'subtract'])</td>
                     </tr>
                 @endforeach
-            </table>
-        </div>
-    @endif
+
+                {{-- Grand Total DAN semua baris di bawahnya (DP/Termin) BOLD —
+                     ini angka-angka yang beneran perlu diperhatiin customer. --}}
+                @if ($doc->taxes->count())
+                    <tr class="total-row">
+                        <td colspan="{{ $colCount - 1 }}" style="text-align: right;">Grand Total</td>
+                        <td class="money">@include('pdf.partials.money', ['amount' => $doc->grand_total])</td>
+                    </tr>
+                @endif
+
+                {{-- Skema Pembayaran — bukan tabel/kotak terpisah, cuma baris
+                     tambahan di bawah Grand Total (bold, ngikutin pola PPN di
+                     atas). Lunas = gak ada baris tambahan sama sekali. --}}
+                @if ($doc->payment_scheme === 'staged')
+                    @foreach ($doc->paymentTerms as $term)
+                        <tr class="bold-row">
+                            <td colspan="{{ $colCount - 1 }}" style="text-align: right;">
+                                {{ $term->label }}{{ $term->percentage ? ' '.rtrim(rtrim(number_format($term->percentage, 2), '0'), '.').'%' : '' }}
+                            </td>
+                            <td class="money">@include('pdf.partials.money', ['amount' => $term->amount])</td>
+                        </tr>
+                    @endforeach
+                @endif
+            @endif
+        </tbody>
+    </table>
 
     @if ($doc->terms)
         <div class="terms-box">

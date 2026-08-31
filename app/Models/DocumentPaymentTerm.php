@@ -7,11 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentPaymentTerm extends Model
 {
-    protected $fillable = ['label', 'percentage', 'amount', 'due_date', 'sort_order'];
-
-    protected $casts = [
-        'due_date' => 'date',
-    ];
+    // Kolom `due_date` masih ada di database (gak dihapus, harmless kalau
+    // nganggur) tapi udah gak dipake lagi di form/PDF sesuai permintaan.
+    protected $fillable = ['label', 'percentage', 'amount', 'sort_order'];
 
     public function document(): BelongsTo
     {

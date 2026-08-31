@@ -120,10 +120,14 @@ class Document extends Model
         return $this->hasMany(DocumentPaymentTerm::class)->orderBy('sort_order');
     }
 
-    // Total (subtotal item) + semua pajak = Grand Total yang beneran ditagih.
+    // Total (subtotal item) + pajak arah "Tambah" - pajak arah "Kurang"
+    // (PPh dst) = Grand Total yang beneran ditagih ke customer.
     public function getGrandTotalAttribute(): float
     {
-        return (float) $this->total + (float) $this->taxes->sum('amount');
+        $addTotal = $this->taxes->where('direction', 'add')->sum('amount');
+        $subtractTotal = $this->taxes->where('direction', 'subtract')->sum('amount');
+
+        return (float) $this->total + (float) $addTotal - (float) $subtractTotal;
     }
 
     public function getTypeLabelAttribute(): string

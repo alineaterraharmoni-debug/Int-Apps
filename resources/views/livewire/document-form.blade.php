@@ -61,7 +61,7 @@
                     }"
                     x-on:click.outside="open = false"
                 >
-                    <input type="text" x-model="q" x-on:focus="open = true"
+                    <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
                            x-on:input="open = true; if (! $event.target.value) { $wire.pickOpportunity(null); }"
                            x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
                            x-on:keydown.escape="open = false"
@@ -102,7 +102,7 @@
                             }"
                             x-on:click.outside="open = false"
                         >
-                            <input type="text" x-model="q" x-on:focus="open = true"
+                            <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
                                    x-on:input="open = true; if (! $event.target.value) { $wire.pickVendor(null); }"
                                    x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
                                    x-on:keydown.escape="open = false"
@@ -158,7 +158,7 @@
                             }"
                             x-on:click.outside="open = false"
                         >
-                            <input type="text" x-model="q" x-on:focus="open = true"
+                            <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
                                    x-on:input="open = true; if (! $event.target.value) { $wire.pickCustomer(null); }"
                                    x-on:keydown.enter.prevent.stop="if (filtered.length) { pick(filtered[0]); }"
                                    x-on:keydown.escape="open = false"
@@ -218,7 +218,21 @@
 
             <div class="space-y-3">
                 @foreach ($items as $i => $item)
-                    <div class="border border-gray-100 dark:border-gray-700 rounded-xl p-3 relative">
+                    {{-- x-data lokal per baris — Qty x Unit Price dihitung LANGSUNG
+                         di browser (Alpine), gak nunggu network round-trip ke
+                         server dulu kayak sebelumnya (yang bikin Amount kelihatan
+                         "gak update" sampe user ngelakuin aksi lain). Nilainya
+                         tetep di-sync ke Livewire pake $wire.set(...,false)
+                         (deferred, gak bikin request tiap ketik) buat disimpen
+                         nanti pas Submit. --}}
+                    <div
+                        class="border border-gray-100 dark:border-gray-700 rounded-xl p-3 relative"
+                        x-data="{
+                            qty: {{ (float) ($item['qty'] ?: 0) }},
+                            price: {{ (float) ($item['unit_price'] ?: 0) }},
+                            get amount() { return (parseFloat(this.qty) || 0) * (parseFloat(this.price) || 0); }
+                        }"
+                    >
                         <button type="button" wire:click="removeItem({{ $i }})" class="absolute top-2 right-2 text-gray-300 dark:text-gray-600 hover:text-red-500 text-lg leading-none">&times;</button>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
@@ -244,7 +258,7 @@
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Qty</label>
-                                <input type="number" step="0.01" wire:model="items.{{ $i }}.qty" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="0.01" x-model="qty" x-on:input="$wire.set('items.{{ $i }}.qty', qty, false)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit</label>
@@ -256,13 +270,11 @@
                             </div>
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit Price (Rp)</label>
-                                <input type="number" step="1" wire:model="items.{{ $i }}.unit_price" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="1" x-model="price" x-on:input="$wire.set('items.{{ $i }}.unit_price', price, false)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Amount</label>
-                                <div class="text-sm font-mono font-semibold py-1.5">
-                                    Rp {{ number_format((float)($item['qty'] ?: 0) * (float)($item['unit_price'] ?: 0), 0, ',', '.') }}
-                                </div>
+                                <div class="text-sm font-mono font-semibold py-1.5" x-text="'Rp ' + Math.round(amount).toLocaleString('id-ID')"></div>
                             </div>
                         </div>
                     </div>
@@ -290,9 +302,9 @@
                 <div class="space-y-2">
                     @foreach ($taxes as $i => $tax)
                         <div class="flex items-end gap-2 flex-wrap">
-                            <div class="flex-1 min-w-[120px]">
+                            <div class="flex-1 min-w-[110px]">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nama Pajak</label>
-                                <input type="text" wire:model="taxes.{{ $i }}.label" placeholder="cth. PPN 11%" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
+                                <input type="text" wire:model="taxes.{{ $i }}.label" placeholder="cth. PPN 11% / PPh 23" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
                             </div>
                             <div class="w-24">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Tipe</label>
@@ -305,18 +317,28 @@
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nilai</label>
                                 <input type="number" step="0.01" wire:model="taxes.{{ $i }}.value" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
+                            <div class="w-32">
+                                <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Arah</label>
+                                <select wire:model="taxes.{{ $i }}.direction" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                    <option value="add">+ Tambah (PPN dst)</option>
+                                    <option value="subtract">− Kurang (PPh dst)</option>
+                                </select>
+                            </div>
                             <div class="w-28 text-right shrink-0">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Hasil</label>
-                                <div class="text-sm font-mono font-semibold py-1.5">Rp {{ number_format($taxAmounts[$i] ?? 0, 0, ',', '.') }}</div>
+                                <div class="text-sm font-mono font-semibold py-1.5">{{ ($tax['direction'] ?? 'add') === 'subtract' ? '-' : '' }}Rp {{ number_format($taxAmounts[$i] ?? 0, 0, ',', '.') }}</div>
                             </div>
                             <button type="button" wire:click="removeTax({{ $i }})" class="text-gray-300 dark:text-gray-600 hover:text-red-500 text-lg leading-none pb-1.5 shrink-0">&times;</button>
                         </div>
                     @endforeach
                 </div>
+                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-2">
+                    "Tambah" buat pajak yang nambah tagihan (PPN). "Kurang" buat pajak yang dipotong dari yang customer bayar (PPh 23, PPh Final, dst).
+                </p>
 
                 <div class="flex justify-end mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                     <div class="text-right">
-                        <div class="text-xs text-gray-400 dark:text-gray-500">Grand Total (Subtotal + Pajak)</div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500">Grand Total (Subtotal ± Pajak)</div>
                         <div class="font-mono font-bold text-lg">Rp {{ number_format($grandTotal, 0, ',', '.') }}</div>
                     </div>
                 </div>
@@ -326,25 +348,23 @@
                 <div class="font-display font-bold text-sm mb-3">Skema Pembayaran</div>
                 <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-sm mb-3">
                     <button type="button" wire:click="$set('payment_scheme', 'full')" class="px-3 py-1.5 rounded-md font-medium {{ $payment_scheme === 'full' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">Lunas</button>
-                    <button type="button" wire:click="$set('payment_scheme', 'dp')" class="px-3 py-1.5 rounded-md font-medium {{ $payment_scheme === 'dp' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">DP</button>
-                    <button type="button" wire:click="$set('payment_scheme', 'termin')" class="px-3 py-1.5 rounded-md font-medium {{ $payment_scheme === 'termin' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">Termin</button>
+                    <button type="button" wire:click="$set('payment_scheme', 'staged')" class="px-3 py-1.5 rounded-md font-medium {{ $payment_scheme === 'staged' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">DP / Termin</button>
                 </div>
 
-                @if ($payment_scheme !== 'full')
+                @if ($payment_scheme === 'staged')
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
+                        Bebas dilabelin sendiri — misal "Down Payment 50%" buat DP, atau "Termin 1", "Termin 2" dst buat cicilan bertahap.
+                    </p>
                     <div class="space-y-2">
                         @foreach ($paymentTerms as $i => $term)
                             <div class="flex items-end gap-2 flex-wrap">
-                                <div class="flex-1 min-w-[100px]">
+                                <div class="flex-1 min-w-[120px]">
                                     <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Label</label>
-                                    <input type="text" wire:model="paymentTerms.{{ $i }}.label" placeholder="cth. DP 50%" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
+                                    <input type="text" wire:model="paymentTerms.{{ $i }}.label" placeholder="cth. Down Payment / Termin 1" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
                                 </div>
-                                <div class="w-20">
-                                    <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">% Total</label>
+                                <div class="w-24">
+                                    <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">% Grand Total</label>
                                     <input type="number" step="0.01" wire:model="paymentTerms.{{ $i }}.percentage" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
-                                </div>
-                                <div class="w-36">
-                                    <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Jatuh Tempo (opsional)</label>
-                                    <input type="date" wire:model="paymentTerms.{{ $i }}.due_date" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                                 </div>
                                 <div class="w-28 text-right shrink-0">
                                     <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nominal</label>
@@ -355,11 +375,6 @@
                         @endforeach
                     </div>
                     <button type="button" wire:click="addPaymentTerm" class="text-xs font-semibold text-sky border border-sky/30 rounded-lg px-2.5 py-1.5 mt-2">+ Tambah Tahap</button>
-
-                    @php $termPercentTotal = collect($paymentTerms)->sum(fn ($t) => (float) ($t['percentage'] ?? 0)); @endphp
-                    @if ($paymentTerms && round($termPercentTotal, 2) !== 100.0)
-                        <p class="text-[11px] text-amber-600 mt-2">⚠ Total persentase tahap sekarang {{ rtrim(rtrim(number_format($termPercentTotal, 2), '0'), '.') }}% (idealnya pas 100%).</p>
-                    @endif
                 @endif
             </div>
         @endif

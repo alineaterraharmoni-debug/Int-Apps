@@ -83,7 +83,6 @@ class DocumentForm extends Component
             $this->paymentTerms = $doc->paymentTerms->map(fn ($p) => [
                 'label' => $p->label,
                 'percentage' => $p->percentage !== null ? (string) $p->percentage : '',
-                'due_date' => optional($p->due_date)->toDateString() ?? '',
             ])->toArray();
         } else {
             $this->type = in_array($type, array_keys(Document::TYPES)) ? $type : 'quotation';
@@ -111,7 +110,7 @@ class DocumentForm extends Component
     {
         $subtotal = $this->calculateTotal();
         $taxTotal = $this->calculateTaxTotal($subtotal);
-        $grandTotal = $subtotal + $taxTotal;
+        $grandTotal = $this->calculateGrandTotalFromTaxes($subtotal);
 
         return view('livewire.document-form', [
             'types' => Document::TYPES,
@@ -199,7 +198,7 @@ class DocumentForm extends Component
             'item_name' => '',
             'description' => '',
             'qty' => '1',
-            'unit' => '',
+            'unit' => 'Unit',
             'credits_required' => '',
             'unit_price' => '0',
         ];
@@ -213,7 +212,7 @@ class DocumentForm extends Component
 
     public function addTax(): void
     {
-        $this->taxes[] = ['label' => 'PPN 11%', 'type' => 'percentage', 'value' => '11'];
+        $this->taxes[] = ['label' => 'PPN 11%', 'type' => 'percentage', 'direction' => 'add', 'value' => '11'];
     }
 
     public function removeTax(int $index): void
@@ -224,7 +223,7 @@ class DocumentForm extends Component
 
     public function addPaymentTerm(): void
     {
-        $this->paymentTerms[] = ['label' => '', 'percentage' => '', 'due_date' => ''];
+        $this->paymentTerms[] = ['label' => '', 'percentage' => ''];
     }
 
     public function removePaymentTerm(int $index): void
@@ -233,20 +232,17 @@ class DocumentForm extends Component
         $this->paymentTerms = array_values($this->paymentTerms);
     }
 
-    // Ganti skema pembayaran -> reset baris tahapan lama, biar gak nyangkut
-    // baris DP kalau pindah ke Termin (atau sebaliknya).
+    // Ganti skema pembayaran -> reset baris tahapan lama. Cuma 2 pilihan:
+    // 'full' (Lunas, gak ada tahapan) atau 'staged' (Bertahap — user bebas
+    // nge-labelin sendiri jadi "Down Payment 50%", "Termin 1", dst, gak ada
+    // preset kaku yang misahin DP vs Termin).
     public function updatedPaymentScheme(): void
     {
         $this->paymentTerms = [];
-        if ($this->payment_scheme === 'dp') {
+        if ($this->payment_scheme === 'staged') {
             $this->paymentTerms = [
-                ['label' => 'DP (Down Payment)', 'percentage' => '50', 'due_date' => ''],
-                ['label' => 'Pelunasan', 'percentage' => '50', 'due_date' => ''],
-            ];
-        } elseif ($this->payment_scheme === 'termin') {
-            $this->paymentTerms = [
-                ['label' => 'Termin 1', 'percentage' => '50', 'due_date' => ''],
-                ['label' => 'Termin 2', 'percentage' => '50', 'due_date' => ''],
+                ['label' => 'Down Payment', 'percentage' => '50'],
+                ['label' => 'Pelunasan', 'percentage' => '50'],
             ];
         }
     }
@@ -313,6 +309,8 @@ class DocumentForm extends Component
 
     // Nominal Rupiah dari satu baris pajak — persentase dihitung dari
     // subtotal item (bukan dari grand total, biar gak "pajak di atas pajak").
+    // Ini SELALU balikin angka POSITIF; arah tambah/kurangnya ditentuin
+    // terpisah lewat field 'direction' (lihat calculateGrandTotalFromTaxes).
     private function taxAmount(array $tax, float $subtotal): float
     {
         if (($tax['type'] ?? 'percentage') === 'fixed') {
@@ -327,11 +325,24 @@ class DocumentForm extends Component
         return collect($this->taxes)->sum(fn ($t) => $this->taxAmount($t, $subtotal));
     }
 
-    private function calculateGrandTotal(): float
+    /**
+     * Grand Total yang bener secara pajak: pajak arah "Tambah" (PPN, dst)
+     * NAMBAHIN ke subtotal, tapi pajak arah "Kurang" (PPh 23, PPh Final,
+     * dst — pajak yang DIPOTONG customer, bukan dibayar customer) malah
+     * NGURANGIN. Sebelumnya semua pajak digebyah-uyah nambah, itu salah
+     * buat kasus PPh.
+     */
+    private function calculateGrandTotalFromTaxes(float $subtotal): float
     {
-        $subtotal = $this->calculateTotal();
+        $addTotal = collect($this->taxes)
+            ->filter(fn ($t) => ($t['direction'] ?? 'add') === 'add')
+            ->sum(fn ($t) => $this->taxAmount($t, $subtotal));
 
-        return $subtotal + $this->calculateTaxTotal($subtotal);
+        $subtractTotal = collect($this->taxes)
+            ->filter(fn ($t) => ($t['direction'] ?? 'add') === 'subtract')
+            ->sum(fn ($t) => $this->taxAmount($t, $subtotal));
+
+        return $subtotal + $addTotal - $subtractTotal;
     }
 
     // Nominal Rupiah dari satu tahap pembayaran (DP/Termin) — persentase
@@ -457,13 +468,14 @@ class DocumentForm extends Component
                 $doc->taxes()->create([
                     'label' => $tax['label'],
                     'type' => $tax['type'],
+                    'direction' => $tax['direction'] ?? 'add',
                     'value' => $tax['value'] ?: 0,
                     'amount' => $this->taxAmount($tax, $subtotal),
                     'sort_order' => $i,
                 ]);
             }
 
-            $grandTotal = $subtotal + $this->calculateTaxTotal($subtotal);
+            $grandTotal = $this->calculateGrandTotalFromTaxes($subtotal);
             foreach ($this->paymentTerms as $i => $term) {
                 if (! trim($term['label'] ?? '')) {
                     continue;
@@ -472,7 +484,6 @@ class DocumentForm extends Component
                     'label' => $term['label'],
                     'percentage' => $term['percentage'] !== '' ? $term['percentage'] : null,
                     'amount' => $this->paymentTermAmount($term, $grandTotal),
-                    'due_date' => $term['due_date'] ?: null,
                     'sort_order' => $i,
                 ]);
             }

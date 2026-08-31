@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentTax extends Model
 {
-    protected $fillable = ['label', 'type', 'value', 'amount', 'sort_order'];
+    protected $fillable = ['label', 'type', 'direction', 'value', 'amount', 'sort_order'];
 
     public function document(): BelongsTo
     {
