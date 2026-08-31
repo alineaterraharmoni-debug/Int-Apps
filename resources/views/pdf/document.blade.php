@@ -15,7 +15,7 @@
              100%) + margin-left:auto, biar keseluruhan blok nempel ke pojok
              kanan (sejajar margin kanan halaman), sementara titik dua-nya
              tetep sejajar antar baris (label punya lebar tetap). --}}
-        .meta-table { font-size: 9.5px; margin-top: 2px; width: auto; margin-left: auto; }
+        .meta-table { font-size: 9.5px; margin-top: 6px; width: auto; margin-left: auto; }
         .meta-table td { padding: 1px 0; vertical-align: top; text-align: left; }
         .meta-label { color: #555; width: 82px; white-space: nowrap; }
         .meta-colon { width: 8px; }
@@ -280,18 +280,22 @@
                     <div class="sign-name">{{ $doc->contact_name }}</div><br>
                     <span class="sign-title">{{ $doc->customer?->name }}</span>
                 </td>
-                {{-- Regards SENGAJA rata kanan (text-align:right) — biar garis
-                     tanda tangannya nempel persis ke margin kanan halaman,
-                     bukan ngambang di tengah kolom kayak sebelumnya. --}}
-                <td style="text-align: right;">
-                    <div>Regards,</div>
-                    @if ($doc->type === 'invoice')
-                        <div style="font-size: 9px; margin-top: 4px; color: #444;">Materai 10.000</div>
-                    @endif
-                    <div class="sign-space"></div>
-                    <div class="sign-name">{{ $doc->signatory_name }}</div><br>
-                    <span class="sign-title">PT. Alinea Terra Harmoni</span>
-                    @if ($doc->type === 'invoice' && $doc->signatory_title)<br><span class="sign-title">{{ $doc->signatory_title }}</span>@endif
+                {{-- Blok "Regards" posisinya tetep di kanan (div pembungkus
+                     lebar tetap + margin-left:auto ngedorong ke kanan), TAPI
+                     teks di dalemnya (nama, PT Alinea) tetep rata kiri —
+                     bukan text-align:right di td (yang bikin teksnya ikut
+                     rata kanan juga, gak cuma posisi blok-nya doang). --}}
+                <td>
+                    <div style="width: 190px; margin-left: auto;">
+                        <div>Regards,</div>
+                        @if ($doc->type === 'invoice')
+                            <div style="font-size: 9px; margin-top: 4px; color: #444;">Materai 10.000</div>
+                        @endif
+                        <div class="sign-space"></div>
+                        <div class="sign-name">{{ $doc->signatory_name }}</div><br>
+                        <span class="sign-title">PT. Alinea Terra Harmoni</span>
+                        @if ($doc->type === 'invoice' && $doc->signatory_title)<br><span class="sign-title">{{ $doc->signatory_title }}</span>@endif
+                    </div>
                 </td>
             </tr>
         </table>
