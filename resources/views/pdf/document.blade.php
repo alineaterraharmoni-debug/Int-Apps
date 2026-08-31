@@ -206,8 +206,8 @@
             @endphp
             <tr class="total-row">
                 <td colspan="{{ $colCount - 2 }}" style="border-top: 2px solid #000;"></td>
-                <td style="text-align: right; {{ $totalHighlight ?  : '' }}">Total</td>
-                <td class="money" style="{{ $totalHighlight ?  : '' }}">@include('pdf.partials.money', ['amount' => $doc->total])</td>
+                <td style="text-align: right; border-top: 2px solid #000; {{ $totalHighlight ? 'background: #F3F4F6;' : '' }}">Total</td>
+                <td class="money" style="border-top: 2px solid #000; {{ $totalHighlight ? 'background: #F3F4F6;' : '' }}">@include('pdf.partials.money', ['amount' => $doc->total])</td>
             </tr>
 
             @if ($doc->type === 'invoice')
