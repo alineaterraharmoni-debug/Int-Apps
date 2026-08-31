@@ -48,6 +48,7 @@
                 </label>
                 <div
                     class="relative"
+                    wire:key="opty-picker-{{ $opportunity_id }}"
                     x-data="{
                         open: false,
                         q: {{ \Illuminate\Support\Js::from($opportunity_id ? optional($opportunities->firstWhere('id', $opportunity_id))->title : '') }},
@@ -62,7 +63,7 @@
                     x-on:click.outside="open = false"
                 >
                     <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
-                           x-on:input="open = true; $wire.pickOpportunity(null)"
+                           x-on:input="open = true; $wire.set('opportunity_id', null, false)"
                            placeholder="Cari opty... (kosongin kalau gak dilink)" autocomplete="off"
                            class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                     <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
@@ -90,6 +91,7 @@
                         <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Vendor / Distributor</label>
                         <div
                             class="relative"
+                            wire:key="vendor-picker-{{ $vendor_id }}"
                             x-data="{
                                 open: false,
                                 q: {{ \Illuminate\Support\Js::from($vendor_id ? optional($vendors->firstWhere('id', $vendor_id))->name : '') }},
@@ -104,7 +106,7 @@
                             x-on:click.outside="open = false"
                         >
                             <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
-                                   x-on:input="open = true; $wire.pickVendor(null)"
+                                   x-on:input="open = true; $wire.set('vendor_id', null, false)"
                                    placeholder="Cari vendor..." autocomplete="off"
                                    class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                             <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
@@ -144,6 +146,7 @@
                         <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Customer</label>
                         <div
                             class="relative"
+                            wire:key="customer-picker-{{ $customer_id }}"
                             x-data="{
                                 open: false,
                                 q: {{ \Illuminate\Support\Js::from($customer_id ? optional($customers->firstWhere('id', $customer_id))->name : '') }},
@@ -158,7 +161,7 @@
                             x-on:click.outside="open = false"
                         >
                             <input type="text" x-model="q" x-on:focus="open = true" x-on:click="open = true"
-                                   x-on:input="open = true; $wire.pickCustomer(null)"
+                                   x-on:input="open = true; $wire.set('customer_id', null, false)"
                                    placeholder="Cari customer..." autocomplete="off"
                                    class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                             <div x-show="open" x-cloak style="display:none;" class="absolute z-30 mt-1 w-full max-h-44 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">

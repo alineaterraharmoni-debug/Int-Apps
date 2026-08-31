@@ -215,7 +215,7 @@
                 @endforeach
 
                 @if ($doc->taxes->count())
-                    <tr class="total-row {{ $doc->payment_scheme !== 'staged' ? 'highlight-row' : '' }}">
+                    <tr class="total-row highlight-row">
                         <td colspan="{{ $colCount - 1 }}" style="text-align: right;">Grand Total</td>
                         <td class="money">@include('pdf.partials.money', ['amount' => $doc->grand_total])</td>
                     </tr>
