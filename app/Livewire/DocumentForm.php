@@ -37,12 +37,19 @@ class DocumentForm extends Component
 
     public array $items = [];
 
+    // Khusus Invoice — pajak (PPN/PPh/lain-lain), bisa lebih dari 1 baris.
+    public array $taxes = [];
+
+    // Khusus Invoice — skema pembayaran: full (lunas) / dp / termin.
+    public string $payment_scheme = 'full';
+    public array $paymentTerms = [];
+
     public function mount(?int $id = null, ?string $type = null): void
     {
         $this->doc_date = now()->toDateString();
 
         if ($id) {
-            $doc = Document::with('items')->findOrFail($id);
+            $doc = Document::with(['items', 'taxes', 'paymentTerms'])->findOrFail($id);
             $this->editingId = $doc->id;
             $this->type = $doc->type;
             $this->number = $doc->number;
@@ -57,6 +64,7 @@ class DocumentForm extends Component
             $this->terms = $doc->terms ?? '';
             $this->signatory_name = $doc->signatory_name;
             $this->signatory_title = $doc->signatory_title ?? '';
+            $this->payment_scheme = $doc->payment_scheme ?? 'full';
             $this->items = $doc->items->map(fn ($i) => [
                 'group_label' => $i->group_label,
                 'product_type' => $i->product_type,
@@ -66,6 +74,16 @@ class DocumentForm extends Component
                 'unit' => $i->unit,
                 'credits_required' => $i->credits_required,
                 'unit_price' => (string) $i->unit_price,
+            ])->toArray();
+            $this->taxes = $doc->taxes->map(fn ($t) => [
+                'label' => $t->label,
+                'type' => $t->type,
+                'value' => (string) $t->value,
+            ])->toArray();
+            $this->paymentTerms = $doc->paymentTerms->map(fn ($p) => [
+                'label' => $p->label,
+                'percentage' => $p->percentage !== null ? (string) $p->percentage : '',
+                'due_date' => optional($p->due_date)->toDateString() ?? '',
             ])->toArray();
         } else {
             $this->type = in_array($type, array_keys(Document::TYPES)) ? $type : 'quotation';
@@ -91,12 +109,21 @@ class DocumentForm extends Component
 
     public function render()
     {
+        $subtotal = $this->calculateTotal();
+        $taxTotal = $this->calculateTaxTotal($subtotal);
+        $grandTotal = $subtotal + $taxTotal;
+
         return view('livewire.document-form', [
             'types' => Document::TYPES,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'vendors' => Vendor::orderBy('name')->get(['id', 'name']),
             'opportunities' => $this->opportunityOptions(),
             'contactOptions' => $this->contactOptions(),
+            'subtotal' => $subtotal,
+            'taxTotal' => $taxTotal,
+            'grandTotal' => $grandTotal,
+            'taxAmounts' => collect($this->taxes)->map(fn ($t) => $this->taxAmount($t, $subtotal))->all(),
+            'paymentTermAmounts' => collect($this->paymentTerms)->map(fn ($p) => $this->paymentTermAmount($p, $grandTotal))->all(),
         ]);
     }
 
@@ -184,6 +211,46 @@ class DocumentForm extends Component
         $this->items = array_values($this->items);
     }
 
+    public function addTax(): void
+    {
+        $this->taxes[] = ['label' => 'PPN 11%', 'type' => 'percentage', 'value' => '11'];
+    }
+
+    public function removeTax(int $index): void
+    {
+        unset($this->taxes[$index]);
+        $this->taxes = array_values($this->taxes);
+    }
+
+    public function addPaymentTerm(): void
+    {
+        $this->paymentTerms[] = ['label' => '', 'percentage' => '', 'due_date' => ''];
+    }
+
+    public function removePaymentTerm(int $index): void
+    {
+        unset($this->paymentTerms[$index]);
+        $this->paymentTerms = array_values($this->paymentTerms);
+    }
+
+    // Ganti skema pembayaran -> reset baris tahapan lama, biar gak nyangkut
+    // baris DP kalau pindah ke Termin (atau sebaliknya).
+    public function updatedPaymentScheme(): void
+    {
+        $this->paymentTerms = [];
+        if ($this->payment_scheme === 'dp') {
+            $this->paymentTerms = [
+                ['label' => 'DP (Down Payment)', 'percentage' => '50', 'due_date' => ''],
+                ['label' => 'Pelunasan', 'percentage' => '50', 'due_date' => ''],
+            ];
+        } elseif ($this->payment_scheme === 'termin') {
+            $this->paymentTerms = [
+                ['label' => 'Termin 1', 'percentage' => '50', 'due_date' => ''],
+                ['label' => 'Termin 2', 'percentage' => '50', 'due_date' => ''],
+            ];
+        }
+    }
+
     // Dipanggil dari typeahead Opty di blade — gabungin set id + auto-isi
     // customer jadi satu network call.
     public function pickOpportunity(?int $id): void
@@ -242,6 +309,36 @@ class DocumentForm extends Component
     private function calculateTotal(): float
     {
         return collect($this->items)->sum(fn ($i) => (float) ($i['qty'] ?? 0) * (float) ($i['unit_price'] ?? 0));
+    }
+
+    // Nominal Rupiah dari satu baris pajak — persentase dihitung dari
+    // subtotal item (bukan dari grand total, biar gak "pajak di atas pajak").
+    private function taxAmount(array $tax, float $subtotal): float
+    {
+        if (($tax['type'] ?? 'percentage') === 'fixed') {
+            return (float) ($tax['value'] ?? 0);
+        }
+
+        return $subtotal * ((float) ($tax['value'] ?? 0) / 100);
+    }
+
+    private function calculateTaxTotal(float $subtotal): float
+    {
+        return collect($this->taxes)->sum(fn ($t) => $this->taxAmount($t, $subtotal));
+    }
+
+    private function calculateGrandTotal(): float
+    {
+        $subtotal = $this->calculateTotal();
+
+        return $subtotal + $this->calculateTaxTotal($subtotal);
+    }
+
+    // Nominal Rupiah dari satu tahap pembayaran (DP/Termin) — persentase
+    // dihitung dari Grand Total (subtotal + pajak), bukan dari subtotal doang.
+    private function paymentTermAmount(array $term, float $grandTotal): float
+    {
+        return $grandTotal * ((float) ($term['percentage'] ?? 0) / 100);
     }
 
     /**
@@ -311,6 +408,7 @@ class DocumentForm extends Component
         $data['ref_po_number'] = $this->ref_po_number ?: null;
         $data['ref_invoice_number'] = $this->ref_invoice_number ?: null;
         $data['signatory_title'] = $this->signatory_title ?: null;
+        $data['payment_scheme'] = $this->type === 'invoice' ? $this->payment_scheme : 'full';
 
         unset($data['items']);
 
@@ -327,6 +425,8 @@ class DocumentForm extends Component
             $doc = Document::findOrFail($this->editingId);
             $doc->update($data);
             $doc->items()->delete();
+            $doc->taxes()->delete();
+            $doc->paymentTerms()->delete();
         } else {
             $doc = Document::create($data);
         }
@@ -344,6 +444,38 @@ class DocumentForm extends Component
                 'amount' => (float) $item['qty'] * (float) $item['unit_price'],
                 'sort_order' => $i,
             ]);
+        }
+
+        // Pajak & skema pembayaran cuma relevan buat Invoice — dokumen jenis
+        // lain gak nyimpen baris ini sama sekali.
+        if ($this->type === 'invoice') {
+            $subtotal = $this->calculateTotal();
+            foreach ($this->taxes as $i => $tax) {
+                if (! trim($tax['label'] ?? '')) {
+                    continue;
+                }
+                $doc->taxes()->create([
+                    'label' => $tax['label'],
+                    'type' => $tax['type'],
+                    'value' => $tax['value'] ?: 0,
+                    'amount' => $this->taxAmount($tax, $subtotal),
+                    'sort_order' => $i,
+                ]);
+            }
+
+            $grandTotal = $subtotal + $this->calculateTaxTotal($subtotal);
+            foreach ($this->paymentTerms as $i => $term) {
+                if (! trim($term['label'] ?? '')) {
+                    continue;
+                }
+                $doc->paymentTerms()->create([
+                    'label' => $term['label'],
+                    'percentage' => $term['percentage'] !== '' ? $term['percentage'] : null,
+                    'amount' => $this->paymentTermAmount($term, $grandTotal),
+                    'due_date' => $term['due_date'] ?: null,
+                    'sort_order' => $i,
+                ]);
+            }
         }
 
         if ($oldOpportunityId && ($oldOpportunityId !== $doc->opportunity_id || $oldType !== $doc->type)) {

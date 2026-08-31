@@ -9,7 +9,7 @@ class DocumentPdfController extends Controller
 {
     public function export(int $id)
     {
-        $doc = Document::with(['items', 'customer', 'vendor', 'opportunity'])->findOrFail($id);
+        $doc = Document::with(['items', 'customer', 'vendor', 'opportunity', 'taxes', 'paymentTerms'])->findOrFail($id);
 
         $pdf = Pdf::loadView('pdf.document', ['doc' => $doc])->setPaper('a4', 'portrait');
 

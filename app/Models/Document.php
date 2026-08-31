@@ -11,7 +11,7 @@ class Document extends Model
     protected $fillable = [
         'type', 'status', 'number', 'doc_date', 'opportunity_id', 'customer_id', 'vendor_id',
         'contact_name', 'ref_quotation_number', 'ref_po_number', 'ref_invoice_number',
-        'terms', 'signatory_name', 'signatory_title', 'total',
+        'terms', 'signatory_name', 'signatory_title', 'total', 'payment_scheme',
     ];
 
     protected $casts = [
@@ -108,6 +108,22 @@ class Document extends Model
     public function items(): HasMany
     {
         return $this->hasMany(DocumentItem::class)->orderBy('sort_order');
+    }
+
+    public function taxes(): HasMany
+    {
+        return $this->hasMany(DocumentTax::class)->orderBy('sort_order');
+    }
+
+    public function paymentTerms(): HasMany
+    {
+        return $this->hasMany(DocumentPaymentTerm::class)->orderBy('sort_order');
+    }
+
+    // Total (subtotal item) + semua pajak = Grand Total yang beneran ditagih.
+    public function getGrandTotalAttribute(): float
+    {
+        return (float) $this->total + (float) $this->taxes->sum('amount');
     }
 
     public function getTypeLabelAttribute(): string

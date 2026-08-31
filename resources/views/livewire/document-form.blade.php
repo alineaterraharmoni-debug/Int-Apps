@@ -271,11 +271,98 @@
 
             <div class="flex justify-end mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
                 <div class="text-right">
-                    <div class="text-xs text-gray-400 dark:text-gray-500">Grand Total</div>
-                    <div class="font-mono font-bold text-lg">Rp {{ number_format(collect($items)->sum(fn ($i) => (float)($i['qty'] ?? 0) * (float)($i['unit_price'] ?? 0)), 0, ',', '.') }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">Subtotal{{ $type === 'invoice' ? ' (sebelum pajak)' : '' }}</div>
+                    <div class="font-mono font-bold text-lg">Rp {{ number_format($subtotal, 0, ',', '.') }}</div>
                 </div>
             </div>
         </div>
+
+        {{-- Pajak & Skema Pembayaran — khusus Invoice --}}
+        @if ($type === 'invoice')
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="font-display font-bold text-sm">Pajak</div>
+                    <button type="button" wire:click="addTax" class="text-xs font-semibold text-sky border border-sky/30 rounded-lg px-2.5 py-1.5">+ Tambah Pajak</button>
+                </div>
+                @if (empty($taxes))
+                    <p class="text-xs text-gray-400 dark:text-gray-500">Belum ada pajak ditambahin (PPN, PPh, atau lain-lain).</p>
+                @endif
+                <div class="space-y-2">
+                    @foreach ($taxes as $i => $tax)
+                        <div class="flex items-end gap-2 flex-wrap">
+                            <div class="flex-1 min-w-[120px]">
+                                <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nama Pajak</label>
+                                <input type="text" wire:model="taxes.{{ $i }}.label" placeholder="cth. PPN 11%" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
+                            </div>
+                            <div class="w-24">
+                                <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Tipe</label>
+                                <select wire:model="taxes.{{ $i }}.type" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                    <option value="percentage">% Subtotal</option>
+                                    <option value="fixed">Rp Tetap</option>
+                                </select>
+                            </div>
+                            <div class="w-20">
+                                <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nilai</label>
+                                <input type="number" step="0.01" wire:model="taxes.{{ $i }}.value" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                            </div>
+                            <div class="w-28 text-right shrink-0">
+                                <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Hasil</label>
+                                <div class="text-sm font-mono font-semibold py-1.5">Rp {{ number_format($taxAmounts[$i] ?? 0, 0, ',', '.') }}</div>
+                            </div>
+                            <button type="button" wire:click="removeTax({{ $i }})" class="text-gray-300 dark:text-gray-600 hover:text-red-500 text-lg leading-none pb-1.5 shrink-0">&times;</button>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="flex justify-end mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <div class="text-right">
+                        <div class="text-xs text-gray-400 dark:text-gray-500">Grand Total (Subtotal + Pajak)</div>
+                        <div class="font-mono font-bold text-lg">Rp {{ number_format($grandTotal, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
+                <div class="font-display font-bold text-sm mb-3">Skema Pembayaran</div>
+                <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-sm mb-3">
+                    <button type="button" wire:click="$set('payment_scheme', 'full')" class="px-3 py-1.5 rounded-md font-medium {{ $payment_scheme === 'full' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">Lunas</button>
+                    <button type="button" wire:click="$set('payment_scheme', 'dp')" class="px-3 py-1.5 rounded-md font-medium {{ $payment_scheme === 'dp' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">DP</button>
+                    <button type="button" wire:click="$set('payment_scheme', 'termin')" class="px-3 py-1.5 rounded-md font-medium {{ $payment_scheme === 'termin' ? 'bg-white dark:bg-gray-800 shadow text-ink dark:text-white' : 'text-gray-500 dark:text-gray-400' }}">Termin</button>
+                </div>
+
+                @if ($payment_scheme !== 'full')
+                    <div class="space-y-2">
+                        @foreach ($paymentTerms as $i => $term)
+                            <div class="flex items-end gap-2 flex-wrap">
+                                <div class="flex-1 min-w-[100px]">
+                                    <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Label</label>
+                                    <input type="text" wire:model="paymentTerms.{{ $i }}.label" placeholder="cth. DP 50%" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-sm">
+                                </div>
+                                <div class="w-20">
+                                    <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">% Total</label>
+                                    <input type="number" step="0.01" wire:model="paymentTerms.{{ $i }}.percentage" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                </div>
+                                <div class="w-36">
+                                    <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Jatuh Tempo (opsional)</label>
+                                    <input type="date" wire:model="paymentTerms.{{ $i }}.due_date" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                </div>
+                                <div class="w-28 text-right shrink-0">
+                                    <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Nominal</label>
+                                    <div class="text-sm font-mono font-semibold py-1.5">Rp {{ number_format($paymentTermAmounts[$i] ?? 0, 0, ',', '.') }}</div>
+                                </div>
+                                <button type="button" wire:click="removePaymentTerm({{ $i }})" class="text-gray-300 dark:text-gray-600 hover:text-red-500 text-lg leading-none pb-1.5 shrink-0">&times;</button>
+                            </div>
+                        @endforeach
+                    </div>
+                    <button type="button" wire:click="addPaymentTerm" class="text-xs font-semibold text-sky border border-sky/30 rounded-lg px-2.5 py-1.5 mt-2">+ Tambah Tahap</button>
+
+                    @php $termPercentTotal = collect($paymentTerms)->sum(fn ($t) => (float) ($t['percentage'] ?? 0)); @endphp
+                    @if ($paymentTerms && round($termPercentTotal, 2) !== 100.0)
+                        <p class="text-[11px] text-amber-600 mt-2">⚠ Total persentase tahap sekarang {{ rtrim(rtrim(number_format($termPercentTotal, 2), '0'), '.') }}% (idealnya pas 100%).</p>
+                    @endif
+                @endif
+            </div>
+        @endif
 
         {{-- Terms & signatory --}}
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 space-y-4">

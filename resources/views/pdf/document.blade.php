@@ -25,8 +25,9 @@
         {{-- display:inline-block — sebelumnya div block biasa otomatis
              ngambil lebar penuh kolomnya, jadi background birunya kepanjangan
              ngebentang. Sekarang cuma sepanjang teks "Quote to" doang, kayak
-             badge di contoh referensi. --}}
-        .recipient-box { display: inline-block; background: #E9F6FC; padding: 4px 8px; font-weight: bold; font-size: 9.5px; color: #0A1628; margin-bottom: 6px; }
+             badge di contoh referensi. Warna disesuaiin sama contoh gambar
+             (biru solid + teks putih, bukan biru muda + teks navy). --}}
+        .recipient-box { display: inline-block; background: #4E63BC; padding: 4px 10px; font-weight: bold; font-size: 9.5px; color: #FFFFFF; margin-bottom: 6px; border-radius: 2px; }
         .recipient-table td { padding: 1px 0; font-size: 10px; vertical-align: top; }
         .recipient-label { width: 90px; color: #555; }
         .recipient-label-bold { font-weight: bold; color: #222; }
@@ -42,7 +43,7 @@
              di bawah judul kolom (th) dan di atas baris Grand Total, biar
              tabelnya keliatan lebih ringan/rapi (gak kotak-kotak). --}}
         table.items { margin-top: 16px; }
-        table.items th { background: #F6B01A; color: #1a1a1a; font-size: 9.5px; text-align: left; padding: 6px 6px; border: none; border-bottom: 2px solid #000; }
+        table.items th { background: #F6B01A; color: #1a1a1a; font-size: 9.5px; text-align: center; padding: 6px 6px; border: none; border-bottom: 2px solid #000; }
         table.items td { font-size: 9.5px; padding: 5px 6px; border: none; vertical-align: top; }
         table.items .num { text-align: center; }
         table.items .money { text-align: right; white-space: nowrap; }
@@ -233,6 +234,54 @@
             </tr>
         </tbody>
     </table>
+
+    {{-- Pajak (PPN/PPh/lain-lain) + Grand Total — khusus Invoice, ditaro di
+         bawah Total, sejajar kanan (satu kolom sama Amount di tabel item). --}}
+    @if ($doc->type === 'invoice' && $doc->taxes->count())
+        <table style="width: 100%; margin-top: 2px;">
+            <tr>
+                <td style="width: 65%;"></td>
+                <td style="width: 35%;">
+                    <table style="width: 100%;">
+                        @foreach ($doc->taxes as $tax)
+                            <tr>
+                                <td style="padding: 3px 6px; font-size: 9.5px;">{{ $tax->label }}</td>
+                                <td style="padding: 3px 6px; font-size: 9.5px; text-align: right; white-space: nowrap;">Rp {{ number_format($tax->amount, 0, ',', '.') }}</td>
+                            </tr>
+                        @endforeach
+                        <tr>
+                            <td style="padding: 6px; font-weight: bold; font-size: 11px; border-top: 2px solid #000;">Grand Total</td>
+                            <td style="padding: 6px; font-weight: bold; font-size: 11px; border-top: 2px solid #000; text-align: right; white-space: nowrap;">Rp {{ number_format($doc->grand_total, 0, ',', '.') }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    @endif
+
+    {{-- Skema Pembayaran (DP/Termin) — khusus Invoice, cuma muncul kalau
+         bukan Lunas dan beneran ada tahapan yang diisi. --}}
+    @if ($doc->type === 'invoice' && $doc->payment_scheme !== 'full' && $doc->paymentTerms->count())
+        <div class="terms-box" style="margin-top: 14px;">
+            <div class="title">Skema Pembayaran ({{ $doc->payment_scheme === 'dp' ? 'DP / Down Payment' : 'Termin' }}) :</div>
+            <table style="width: 100%; margin-top: 4px;">
+                <tr style="font-size: 9px; color: #555;">
+                    <td style="padding: 2px 4px;">Tahap</td>
+                    <td style="padding: 2px 4px; text-align: right;">Persentase</td>
+                    <td style="padding: 2px 4px; text-align: right;">Nominal</td>
+                    <td style="padding: 2px 4px; text-align: right;">Jatuh Tempo</td>
+                </tr>
+                @foreach ($doc->paymentTerms as $term)
+                    <tr style="font-size: 9.5px;">
+                        <td style="padding: 2px 4px;">{{ $term->label }}</td>
+                        <td style="padding: 2px 4px; text-align: right;">{{ $term->percentage ? rtrim(rtrim(number_format($term->percentage, 2), '0'), '.').'%' : '-' }}</td>
+                        <td style="padding: 2px 4px; text-align: right; white-space: nowrap;">Rp {{ number_format($term->amount, 0, ',', '.') }}</td>
+                        <td style="padding: 2px 4px; text-align: right;">{{ $term->due_date?->translatedFormat('d M Y') ?? '-' }}</td>
+                    </tr>
+                @endforeach
+            </table>
+        </div>
+    @endif
 
     @if ($doc->terms)
         <div class="terms-box">
