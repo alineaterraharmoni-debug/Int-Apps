@@ -10,7 +10,7 @@ class Document extends Model
 {
     protected $fillable = [
         'type', 'status', 'number', 'doc_date', 'opportunity_id', 'customer_id', 'vendor_id',
-        'contact_name', 'ref_quotation_number', 'ref_po_number', 'ref_invoice_number',
+        'contact_name', 'contact_title', 'ref_quotation_number', 'ref_po_number', 'ref_invoice_number',
         'terms', 'signatory_name', 'signatory_title', 'total', 'payment_scheme',
     ];
 

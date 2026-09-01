@@ -11,10 +11,6 @@
         .company-info { font-size: 9px; color: #444; line-height: 1.5; margin-top: 4px; }
         .company-info b { color: #111; }
         .doc-title { font-size: 20px; font-style: italic; font-weight: bold; text-align: right; color: #222; line-height: 1.2; margin-bottom: 4px; }
-        {{-- Meta-table (Date / No / Ref) — lebarnya sekarang OTOMATIS (bukan
-             100%) + margin-left:auto, biar keseluruhan blok nempel ke pojok
-             kanan (sejajar margin kanan halaman), sementara titik dua-nya
-             tetep sejajar antar baris (label punya lebar tetap). --}}
         .meta-table { font-size: 9.5px; margin-top: 6px; width: auto; margin-left: auto; }
         .meta-table td { padding: 1px 0; vertical-align: top; text-align: left; }
         .meta-label { color: #555; width: 82px; white-space: nowrap; }
@@ -22,32 +18,22 @@
         .meta-value { text-align: left; white-space: nowrap; }
         .divider { border-top: 2px solid #19A9DB; margin: 10px 0 14px; }
 
-        {{-- display:inline-block — sebelumnya div block biasa otomatis
-             ngambil lebar penuh kolomnya, jadi background birunya kepanjangan
-             ngebentang. Sekarang cuma sepanjang teks "Quote to" doang, kayak
-             badge di contoh referensi. Warna disesuaiin sama contoh gambar
-             (biru solid + teks putih, bukan biru muda + teks navy). --}}
         .recipient-box { display: inline-block; background: #4E63BC; padding: 4px 10px; font-weight: bold; font-size: 9.5px; color: #FFFFFF; margin-bottom: 6px; border-radius: 2px; }
-        .recipient-table td { padding: 1px 0; font-size: 10px; vertical-align: top; }
-        .recipient-label { width: 90px; color: #555; }
+        {{-- GANTI TOTAL dari tabel 3-kolom (label/titik-dua/nilai) jadi teknik
+             hanging-indent murni CSS (padding-left + text-indent negatif) —
+             tabel 3-kolom kemarin GAK RELIABLE di DomPDF pas ditaro di
+             container yang lebih sempit (dalam .two-col, kayak punya BAST):
+             DomPDF suka gak ngehormatin lebar kolom sempit (width:8px buat
+             titik dua), jadi kolomnya melebar sendiri dan bikin ada gap
+             gede antara ":" sama teks datanya. Teknik ini gak gantung ke
+             perhitungan lebar kolom tabel sama sekali, jadi konsisten di
+             container lebar (Quotation/Invoice/PO) MAUPUN sempit (BAST). --}}
+        .recipient-row { padding-left: 92px; text-indent: -92px; margin-bottom: 2px; font-size: 10px; }
         .recipient-label-bold { font-weight: bold; color: #222; }
-        {{-- Kolom titik-dua & nilai dipisah — biar kalau nilainya (nama
-             perusahaan panjang) wrap ke baris ke-2, baris itu sejajar sama
-             huruf pertama nilainya, bukan nempel ke kiri banget (di bawah
-             titik dua). --}}
-        .recipient-colon { width: 8px; }
-        .recipient-value { vertical-align: top; }
-        {{-- Alamat dikasih batas lebar (kayak alamat perusahaan di kop surat
-             sebelah kiri) biar wrap jadi beberapa baris pendek, bukan satu
-             baris panjang ngebentang selebar halaman. --}}
-        .recipient-address { padding-top: 2px !important; }
-        .recipient-address-inner { max-width: 340px; }
+        .recipient-address-row { padding-left: 92px; margin-bottom: 2px; font-size: 10px; max-width: 300px; }
 
         .two-col td { width: 50%; vertical-align: top; padding-right: 20px; }
 
-        {{-- Border per-sel item DIHAPUS total — sekarang cuma ada garis tebal
-             di bawah judul kolom (th) dan di atas baris Grand Total, biar
-             tabelnya keliatan lebih ringan/rapi (gak kotak-kotak). --}}
         table.items { margin-top: 16px; }
         table.items th { background: #F6B01A; color: #1a1a1a; font-size: 9.5px; text-align: center; padding: 6px 6px; border: none; border-bottom: 2px solid #000; }
         table.items td { font-size: 9.5px; padding: 5px 6px; border: none; vertical-align: top; }
@@ -55,17 +41,8 @@
         table.items .money { text-align: right; white-space: nowrap; width: 18%; }
         .group-row td { background: #FAFAFA; font-weight: bold; font-size: 9.5px; border: none; }
         .desc-detail { font-size: 9px; color: #555; margin-top: 2px; white-space: pre-line; }
-        {{-- Garis border-top DIHAPUS dari Total & Grand Total (gak ada garis
-             sama sekali di Total). Grand Total nanti pake garis SEMPIT
-             (cuma di 2 sel terakhir), bukan lewat class row ini lagi. --}}
         table.items .total-row td { font-weight: bold; font-size: 11px; border: none; }
-        {{-- Baris DP/Termin — bold kayak Grand Total. --}}
         table.items .bold-row td { font-weight: bold; font-size: 11px; border: none; }
-        {{-- Highlight abu-abu & garis Grand Total sekarang DIKASIH LANGSUNG
-             ke sel yang relevan doang (bukan class di <tr>), soalnya harus
-             SEMPIT — cuma dari kolom label ("Grand Total"/"Down Payment")
-             sampai kolom nominal, kolom di sebelah kirinya (No, Description,
-             Qty, dst) tetep putih polos. --}}
 
         .terms-box { border: 1px solid #999; padding: 8px 10px; margin-top: 18px; font-size: 9px; }
         .terms-box .title { font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
@@ -98,9 +75,6 @@
                 </div>
             </td>
         </tr>
-        {{-- Baris ke-2 terpisah (bukan ditumpuk margin/height nebak-nebak) —
-             biar "Date"/"No" DIJAMIN sejajar persis sama baris
-             "PT. Alinea Terra Harmoni", soalnya dua-duanya di <tr> yang sama. --}}
         <tr>
             <td style="width: 55%; vertical-align: top;">
                 <div class="company-info">
@@ -134,22 +108,24 @@
             <tr>
                 <td>
                     <div class="recipient-box">PIHAK PERTAMA (Menyerahkan)</div>
-                    <table class="recipient-table">
-                        <tr><td class="recipient-label">Nama Perusahaan</td><td class="recipient-colon">:</td><td class="recipient-value">PT. Alinea Terra Harmoni</td></tr>
-                        <tr><td class="recipient-label">Diwakili oleh</td><td class="recipient-colon">:</td><td class="recipient-value">{{ $doc->signatory_name }}</td></tr>
-                        @if ($doc->signatory_title)
-                            <tr><td class="recipient-label">Jabatan</td><td class="recipient-colon">:</td><td class="recipient-value">{{ $doc->signatory_title }}</td></tr>
-                        @endif
-                    </table>
+                    <div class="recipient-row"><b class="recipient-label-bold">Nama Perusahaan</b> : PT. Alinea Terra Harmoni</div>
+                    <div class="recipient-row">Diwakili oleh : {{ $doc->signatory_name }}</div>
+                    @if ($doc->signatory_title)
+                        <div class="recipient-row">Jabatan : {{ $doc->signatory_title }}</div>
+                    @endif
                 </td>
                 <td>
                     <div class="recipient-box">PIHAK KEDUA (Menerima)</div>
-                    <table class="recipient-table">
-                        <tr><td class="recipient-label">Nama Perusahaan</td><td class="recipient-colon">:</td><td class="recipient-value">{{ $doc->customer?->name }}</td></tr>
-                        @if ($doc->contact_name)<tr><td class="recipient-label">Contact Name</td><td class="recipient-colon">:</td><td class="recipient-value">{{ $doc->contact_name }}</td></tr>@endif
-                        @if ($doc->contact_title)<tr><td class="recipient-label">Jabatan</td><td class="recipient-colon">:</td><td class="recipient-value">{{ $doc->contact_title }}</td></tr>@endif
-                        @if ($doc->customer?->address)<tr><td colspan="3" class="recipient-address"><div class="recipient-address-inner">{{ $doc->customer->address }}</div></td></tr>@endif
-                    </table>
+                    <div class="recipient-row"><b class="recipient-label-bold">Nama Perusahaan</b> : {{ $doc->customer?->name }}</div>
+                    @if ($doc->contact_name)
+                        <div class="recipient-row">Contact Name : {{ $doc->contact_name }}</div>
+                    @endif
+                    @if ($doc->contact_title)
+                        <div class="recipient-row">Jabatan : {{ $doc->contact_title }}</div>
+                    @endif
+                    @if ($doc->customer?->address)
+                        <div class="recipient-address-row">{{ $doc->customer->address }}</div>
+                    @endif
                 </td>
             </tr>
         </table>
@@ -165,28 +141,19 @@
             @else Quote to
             @endif
         </div>
-        <table class="recipient-table">
-            <tr>
-                <td class="recipient-label recipient-label-bold">Account Name</td>
-                <td class="recipient-colon">:</td>
-                <td class="recipient-value"><b>{{ $doc->recipient_name }}</b></td>
-            </tr>
-            @if ($doc->contact_name)
-                <tr><td class="recipient-label">Contact Name</td><td class="recipient-colon">:</td><td class="recipient-value">{{ $doc->contact_name }}</td></tr>
-            @endif
-            @if ($doc->contact_title)
-                <tr><td class="recipient-label">Jabatan</td><td class="recipient-colon">:</td><td class="recipient-value">{{ $doc->contact_title }}</td></tr>
-            @endif
-            @php
-                $recipientAddress = $doc->type === 'po' ? $doc->vendor?->address : $doc->customer?->address;
-            @endphp
-            @if ($recipientAddress)
-                {{-- colspan=3 (bukan kolom terakhir doang) biar alamatnya sejajar
-                     sama teks "Account Name"/"Contact Name", bukan nempel di
-                     bawah titik dua. --}}
-                <tr><td colspan="3" class="recipient-address"><div class="recipient-address-inner">{{ $recipientAddress }}</div></td></tr>
-            @endif
-        </table>
+        <div class="recipient-row"><b class="recipient-label-bold">Account Name</b> : <b>{{ $doc->recipient_name }}</b></div>
+        @if ($doc->contact_name)
+            <div class="recipient-row">Contact Name : {{ $doc->contact_name }}</div>
+        @endif
+        @if ($doc->contact_title)
+            <div class="recipient-row">Jabatan : {{ $doc->contact_title }}</div>
+        @endif
+        @php
+            $recipientAddress = $doc->type === 'po' ? $doc->vendor?->address : $doc->customer?->address;
+        @endphp
+        @if ($recipientAddress)
+            <div class="recipient-address-row">{{ $recipientAddress }}</div>
+        @endif
 
         @if ($doc->type === 'po' && $doc->customer)
             <p style="margin-top: 10px; font-size: 9.5px;">
@@ -233,10 +200,6 @@
                         <td>{{ $item->product_type }}</td>
                     @endif
                     <td>
-                        {{-- Nama Item (BOLD) sekarang field terpisah dari Deskripsi.
-                             Fallback ke baris pertama $description buat data lama
-                             yang belum ada item_name-nya. Deskripsi cuma
-                             ditampilin kalau beneran diisi (gak wajib lagi). --}}
                         <b>{{ $item->item_name ?: \Illuminate\Support\Str::of($item->description)->explode("\n")->first() }}</b>
                         @if ($item->item_name && $item->description)
                             <div class="desc-detail">{{ $item->description }}</div>
@@ -256,26 +219,14 @@
                 </tr>
             @endforeach
             @php
-                // Total (subtotal) — highlight cuma di kasus khusus: Invoice
-                // tanpa pajak sama sekali & Lunas (di situ Total = angka
-                // final yang perlu dibayar, gak ada Grand Total lagi).
                 $totalHighlight = $doc->type === 'invoice' && $doc->taxes->isEmpty() && $doc->payment_scheme !== 'staged';
             @endphp
             <tr class="total-row">
-                {{-- Spacer kosong ikut dikasih border-top juga, biar garisnya
-                     NYAMBUNG selebar tabel (kayak garis bawah header) —
-                     bedanya sama Grand Total: background abu-abu tetep
-                     SEMPIT (cuma di sel label+nominal), garisnya doang yang
-                     full-width. --}}
                 <td colspan="{{ $colCount - 2 }}" style="border-top: 2px solid #000;"></td>
                 <td style="text-align: right; border-top: 2px solid #000; {{ $totalHighlight ? 'background: #F3F4F6;' : '' }}">Total</td>
                 <td class="money" style="border-top: 2px solid #000; {{ $totalHighlight ? 'background: #F3F4F6;' : '' }}">@include('pdf.partials.money', ['amount' => $doc->total])</td>
             </tr>
 
-            {{-- Pajak (PPN/PPh/lain-lain) — baris BIASA (gak bold), masih di
-                 dalem tabel yang SAMA persis kayak Total, jadi kolom Rp/angka-nya
-                 dijamin sejajar sempurna (bukan tabel terpisah kayak sebelumnya
-                 yang proporsi lebar kolomnya beda-beda). --}}
             @if ($doc->type === 'invoice')
                 @foreach ($doc->taxes as $tax)
                     <tr>
@@ -284,11 +235,6 @@
                     </tr>
                 @endforeach
 
-                {{-- Grand Total: garis SEMPIT (cuma di sel label+nominal, bukan
-                     sepanjang baris) + highlight GANTIAN — kalau ADA DP/Termin,
-                     Grand Total GAK di-highlight (fokusnya pindah ke baris
-                     DP/Termin di bawahnya). Kalau LUNAS (gak ada DP/Termin),
-                     Grand Total YANG di-highlight. --}}
                 @if ($doc->taxes->count())
                     @php $gtHighlight = $doc->payment_scheme !== 'staged'; @endphp
                     <tr class="total-row">
@@ -298,9 +244,6 @@
                     </tr>
                 @endif
 
-                {{-- Skema Pembayaran — bukan tabel/kotak terpisah, cuma baris
-                     tambahan di bawah Grand Total (bold + highlight sempit,
-                     TANPA garis). Lunas = gak ada baris tambahan sama sekali. --}}
                 @if ($doc->payment_scheme === 'staged')
                     @foreach ($doc->paymentTerms as $term)
                         <tr class="bold-row">
@@ -316,8 +259,6 @@
         </tbody>
     </table>
 
-    {{-- BAST gak butuh Terms & Condition — itu dokumen serah terima
-         (receipt), bukan dokumen komersial kayak Quotation/PO/Invoice. --}}
     @if ($doc->terms && $doc->type !== 'bast')
         <div class="terms-box">
             <div class="title">{{ $doc->type === 'po' ? 'Catatan' : 'Terms and Condition' }} :</div>
@@ -372,26 +313,15 @@
                 <td>
                     <div>Accepted by,</div>
                     <div class="sign-space"></div>
-                    {{-- Kalau gak ada Contact Name, baris tanda tangan SENGAJA
-                         dibiarin kosong (bukan diisi nama customer) — nama
-                         customer-nya tetep di baris caption di bawahnya aja,
-                         gak dobel. --}}
                     <div class="sign-name">{{ $doc->contact_name }}</div><br>
                     @if ($doc->contact_title)<span class="sign-title">{{ $doc->contact_title }}</span><br>@endif
                     <span class="sign-title">{{ $doc->customer?->name }}</span>
                 </td>
-                {{-- Blok "Regards" posisinya tetep di kanan (div pembungkus
-                     lebar tetap + margin-left:auto ngedorong ke kanan), TAPI
-                     teks di dalemnya (nama, PT Alinea) tetep rata kiri —
-                     bukan text-align:right di td (yang bikin teksnya ikut
-                     rata kanan juga, gak cuma posisi blok-nya doang). --}}
                 <td>
                     <div style="width: 190px; margin-left: auto;">
                         <div>Regards,</div>
                         <div class="sign-space"></div>
                         <div class="sign-name">{{ $doc->signatory_name }}</div><br>
-                        {{-- Jabatan di ATAS "PT. Alinea Terra Harmoni" (posisi
-                             sebelumnya salah, kebalik) — cuma muncul kalau diisi. --}}
                         @if ($doc->type === 'invoice' && $doc->signatory_title)<span class="sign-title">{{ $doc->signatory_title }}</span><br>@endif
                         <span class="sign-title">PT. Alinea Terra Harmoni</span>
                     </div>
