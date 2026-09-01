@@ -345,17 +345,17 @@
                     <div>Pihak Pertama,</div>
                     <div class="sign-space"></div>
                     <div class="sign-name">{{ $doc->signatory_name }}</div><br>
-                    {{-- Jabatan di ATAS nama perusahaan (bukan di bawahnya) —
-                         cuma muncul kalau beneran diisi. --}}
                     @if ($doc->signatory_title)<span class="sign-title">{{ $doc->signatory_title }}</span><br>@endif
                     <span class="sign-title">PT. Alinea Terra Harmoni</span>
                 </td>
                 <td>
-                    <div>Pihak Kedua,</div>
-                    <div class="sign-space"></div>
-                    <div class="sign-name">{{ $doc->contact_name }}</div><br>
-                    @if ($doc->contact_title)<span class="sign-title">{{ $doc->contact_title }}</span><br>@endif
-                    <span class="sign-title">{{ $doc->customer?->name }}</span>
+                    <div style="width: 190px; margin-left: auto;">
+                        <div>Pihak Kedua,</div>
+                        <div class="sign-space"></div>
+                        <div class="sign-name">{{ $doc->contact_name }}</div><br>
+                        @if ($doc->contact_title)<span class="sign-title">{{ $doc->contact_title }}</span><br>@endif
+                        <span class="sign-title">{{ $doc->customer?->name }}</span>
+                    </div>
                 </td>
             </tr>
         </table>

@@ -273,11 +273,11 @@
                         <div class="grid grid-cols-2 sm:grid-cols-6 gap-2">
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Qty</label>
-                                <input type="number" step="0.01" x-model="qty" x-on:input="$wire.set('items.{{ $i }}.qty', qty, false)" x-on:input.debounce.500ms="$wire.set('items.{{ $i }}.qty', qty, true)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="0.01" x-model="qty" x-on:input="$wire.set('items.{{ $i }}.qty', qty, false)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Discount %</label>
-                                <input type="number" step="0.01" x-model="discount" x-on:input="$wire.set('items.{{ $i }}.discount', discount, false)" x-on:input.debounce.500ms="$wire.set('items.{{ $i }}.discount', discount, true)" placeholder="0" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="0.01" x-model="discount" x-on:input="$wire.set('items.{{ $i }}.discount', discount, false)" placeholder="0" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit</label>
@@ -289,7 +289,7 @@
                             </div>
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit Price (Rp)</label>
-                                <input type="number" step="1" x-model="price" x-on:input="$wire.set('items.{{ $i }}.unit_price', price, false)" x-on:input.debounce.500ms="$wire.set('items.{{ $i }}.unit_price', price, true)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="1" x-model="price" x-on:input="$wire.set('items.{{ $i }}.unit_price', price, false)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Amount</label>
