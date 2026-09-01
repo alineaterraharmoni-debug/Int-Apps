@@ -140,7 +140,6 @@
                         <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Vendor ini belum ada data kontak — tambahin di menu Vendor kalau perlu.</p>
                     @endif
                 </div>
-                {{-- TAMBAHAN BARU: --}}
                 <div>
                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Jabatan Contact Person <span class="font-normal text-gray-400">(opsional)</span></label>
                     <input type="text" wire:model="contact_title" placeholder="cth. Purchasing Manager" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
@@ -188,7 +187,6 @@
                         </select>
                     </div>
                 </div>
-                {{-- TAMBAHAN BARU: --}}
                 <div>
                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Jabatan Contact Person <span class="font-normal text-gray-400">(opsional)</span></label>
                     <input type="text" wire:model="contact_title" placeholder="cth. Purchasing Manager" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
@@ -219,13 +217,34 @@
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
             <div class="flex items-center justify-between mb-3">
                 <div class="font-display font-bold text-sm">Item</div>
-                <button type="button" wire:click="addItem" class="text-xs font-semibold text-sky border border-sky/30 rounded-lg px-2.5 py-1.5">+ Tambah Baris</button>
+                <button type="button" x-on:click="$wire.addItem().then(() => $dispatch('item-changed'))" class="text-xs font-semibold text-sky border border-sky/30 rounded-lg px-2.5 py-1.5">+ Tambah Baris</button>
             </div>
 
             <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
                 Isi Unit ATAU Credits sesuai kebutuhan tiap baris — kalau semua baris cuma pake Unit, kolom Credit gak bakal muncul di PDF. Begitu ada 1 baris aja yang isi Credits, kolom itu otomatis muncul di PDF.
             </p>
 
+            {{-- Wrapper baru KHUSUS buat Subtotal biar live lagi — TANPA nyentuh
+                 x-data per baris di bawah (yang ngitung Amount, itu udah bener,
+                 sengaja gak diapa-apain). Tiap baris nge-dispatch event
+                 "item-changed" pas qty/discount/price berubah, wrapper ini
+                 nangkep event-nya terus baca ulang .amount tiap baris (lewat
+                 Alpine.$data(), baca dari luar tanpa ganggu state internal
+                 baris itu) buat jumlahin Subtotal — murni di browser, gak
+                 nunggu network round-trip. --}}
+            <div
+                x-data="{
+                    subtotal: {{ $subtotal }},
+                    recalcSubtotal() {
+                        let total = 0;
+                        this.$el.querySelectorAll('.item-row').forEach(el => {
+                            total += Alpine.$data(el).amount || 0;
+                        });
+                        this.subtotal = total;
+                    }
+                }"
+                x-on:item-changed.window="recalcSubtotal()"
+            >
             <div class="space-y-3">
                 @foreach ($items as $i => $item)
                     {{-- x-data lokal per baris — Qty x Unit Price dihitung LANGSUNG
@@ -234,9 +253,9 @@
                          "gak update" sampe user ngelakuin aksi lain). Nilainya
                          tetep di-sync ke Livewire pake $wire.set(...,false)
                          (deferred, gak bikin request tiap ketik) buat disimpen
-                         nanti pas Submit. --}}
+                         nanti pas Submit. JANGAN DIUBAH — ini udah bener. --}}
                     <div
-                        class="border border-gray-100 dark:border-gray-700 rounded-xl p-3 relative"
+                        class="border border-gray-100 dark:border-gray-700 rounded-xl p-3 relative item-row"
                         x-data="{
                             qty: {{ (float) ($item['qty'] ?: 0) }},
                             price: {{ (float) ($item['unit_price'] ?: 0) }},
@@ -248,7 +267,7 @@
                             }
                         }"
                     >
-                        <button type="button" wire:click="removeItem({{ $i }})" class="absolute top-2 right-2 text-gray-300 dark:text-gray-600 hover:text-red-500 text-lg leading-none">&times;</button>
+                        <button type="button" x-on:click="$wire.removeItem({{ $i }}).then(() => $dispatch('item-changed'))" class="absolute top-2 right-2 text-gray-300 dark:text-gray-600 hover:text-red-500 text-lg leading-none">&times;</button>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                             <input type="text" wire:model="items.{{ $i }}.group_label" placeholder="Label grup (opsional, cth. Option 1 - TrendAI Essentials)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2.5 py-1.5 text-xs">
@@ -273,11 +292,11 @@
                         <div class="grid grid-cols-2 sm:grid-cols-6 gap-2">
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Qty</label>
-                                <input type="number" step="0.01" x-model="qty" x-on:input="$wire.set('items.{{ $i }}.qty', qty, false)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="0.01" x-model="qty" x-on:input="$wire.set('items.{{ $i }}.qty', qty, false); $dispatch('item-changed')" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Discount %</label>
-                                <input type="number" step="0.01" x-model="discount" x-on:input="$wire.set('items.{{ $i }}.discount', discount, false)" placeholder="0" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="0.01" x-model="discount" x-on:input="$wire.set('items.{{ $i }}.discount', discount, false); $dispatch('item-changed')" placeholder="0" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit</label>
@@ -289,7 +308,7 @@
                             </div>
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit Price (Rp)</label>
-                                <input type="number" step="1" x-model="price" x-on:input="$wire.set('items.{{ $i }}.unit_price', price, false)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                                <input type="number" step="1" x-model="price" x-on:input="$wire.set('items.{{ $i }}.unit_price', price, false); $dispatch('item-changed')" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Amount</label>
@@ -303,9 +322,10 @@
             <div class="flex justify-end mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
                 <div class="text-right">
                     <div class="text-xs text-gray-400 dark:text-gray-500">Subtotal{{ $type === 'invoice' ? ' (sebelum pajak)' : '' }}</div>
-                    <div class="font-mono font-bold text-lg">Rp {{ number_format($subtotal, 0, ',', '.') }}</div>
+                    <div class="font-mono font-bold text-lg" x-text="'Rp ' + Math.round(subtotal).toLocaleString('id-ID')"></div>
                 </div>
             </div>
+            </div>{{-- /wrapper Subtotal --}}
         </div>
 
         {{-- Pajak & Skema Pembayaran — khusus Invoice --}}
@@ -424,7 +444,16 @@
             @endif
             <div class="flex flex-col sm:flex-row gap-2 order-1 sm:order-2">
                 <a href="{{ route('documents.index') }}" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-center">Batal</a>
+                {{-- Simpan sebagai Draft ditaro TEPAT SETELAH Batal (bukan di
+                     paling ujung) — dan ini yang jadi default kalau user
+                     nekan Enter di form (form-nya wire:submit="saveDraft").
+                     Draft gak ngecentang checklist Next Action di opty
+                     terkait, baru Final yang ngecentang. --}}
                 <button type="submit" class="text-sm font-semibold px-5 py-2 rounded-lg border border-sky text-sky hover:bg-sky/5">Simpan sebagai Draft</button>
+                {{-- Simpan Dokumen (Final) SENGAJA type="button" + wire:click
+                     manual, BUKAN submit form-nya — biar nekan Enter di
+                     field manapun gak ke-anggep "Simpan Dokumen" (Final)
+                     tapi ke-anggep Draft (lebih aman, gak "kecolongan" final). --}}
                 <button type="button" wire:click="save" class="text-sm font-semibold px-5 py-2 rounded-lg bg-ink text-white">Simpan Dokumen</button>
             </div>
         </div>
