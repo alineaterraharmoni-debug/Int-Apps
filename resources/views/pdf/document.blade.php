@@ -19,18 +19,14 @@
         .divider { border-top: 2px solid #19A9DB; margin: 10px 0 14px; }
 
         .recipient-box { display: inline-block; background: #4E63BC; padding: 4px 10px; font-weight: bold; font-size: 9.5px; color: #FFFFFF; margin-bottom: 6px; border-radius: 2px; }
-        {{-- GANTI TOTAL dari tabel 3-kolom (label/titik-dua/nilai) jadi teknik
-             hanging-indent murni CSS (padding-left + text-indent negatif) —
-             tabel 3-kolom kemarin GAK RELIABLE di DomPDF pas ditaro di
-             container yang lebih sempit (dalam .two-col, kayak punya BAST):
-             DomPDF suka gak ngehormatin lebar kolom sempit (width:8px buat
-             titik dua), jadi kolomnya melebar sendiri dan bikin ada gap
-             gede antara ":" sama teks datanya. Teknik ini gak gantung ke
-             perhitungan lebar kolom tabel sama sekali, jadi konsisten di
-             container lebar (Quotation/Invoice/PO) MAUPUN sempit (BAST). --}}
-        .recipient-row { padding-left: 92px; text-indent: -92px; margin-bottom: 2px; font-size: 10px; }
-        .recipient-label-bold { font-weight: bold; color: #222; }
-        .recipient-address-row { padding-left: 92px; margin-bottom: 2px; font-size: 10px; max-width: 300px; }
+        {{-- 2 kolom (label lebar tetap + ": nilai" nempel jadi satu) — titik
+             dua DIJAMIN sejajar (lebar kolom label sama semua baris), dan
+             SEMUA baris termasuk alamat ditaro dalem SATU tabel yang sama
+             biar alamatnya otomatis sejajar sama baris-baris di atasnya. --}}
+        .rtable { width: 100%; margin-bottom: 6px; }
+        .rtable td { padding: 0 0 2px 0; font-size: 10px; vertical-align: top; border: none; }
+        .rtable .rlabel { width: 92px; }
+        .rtable .raddress { padding-left: 6px; max-width: 280px; }
 
         .two-col td { width: 50%; vertical-align: top; padding-right: 20px; }
 
@@ -108,24 +104,28 @@
             <tr>
                 <td>
                     <div class="recipient-box">PIHAK PERTAMA (Menyerahkan)</div>
-                    <div class="recipient-row"><b class="recipient-label-bold">Nama Perusahaan</b> : PT. Alinea Terra Harmoni</div>
-                    <div class="recipient-row">Diwakili oleh : {{ $doc->signatory_name }}</div>
-                    @if ($doc->signatory_title)
-                        <div class="recipient-row">Jabatan : {{ $doc->signatory_title }}</div>
-                    @endif
+                    <table class="rtable">
+                        <tr><td class="rlabel"><b>Nama Perusahaan</b></td><td>: PT. Alinea Terra Harmoni</td></tr>
+                        <tr><td class="rlabel">Diwakili oleh</td><td>: {{ $doc->signatory_name }}</td></tr>
+                        @if ($doc->signatory_title)
+                            <tr><td class="rlabel">Jabatan</td><td>: {{ $doc->signatory_title }}</td></tr>
+                        @endif
+                    </table>
                 </td>
                 <td>
                     <div class="recipient-box">PIHAK KEDUA (Menerima)</div>
-                    <div class="recipient-row"><b class="recipient-label-bold">Nama Perusahaan</b> : {{ $doc->customer?->name }}</div>
-                    @if ($doc->contact_name)
-                        <div class="recipient-row">Contact Name : {{ $doc->contact_name }}</div>
-                    @endif
-                    @if ($doc->contact_title)
-                        <div class="recipient-row">Jabatan : {{ $doc->contact_title }}</div>
-                    @endif
-                    @if ($doc->customer?->address)
-                        <div class="recipient-address-row">{{ $doc->customer->address }}</div>
-                    @endif
+                    <table class="rtable">
+                        <tr><td class="rlabel"><b>Nama Perusahaan</b></td><td>: {{ $doc->customer?->name }}</td></tr>
+                        @if ($doc->contact_name)
+                            <tr><td class="rlabel">Contact Name</td><td>: {{ $doc->contact_name }}</td></tr>
+                        @endif
+                        @if ($doc->contact_title)
+                            <tr><td class="rlabel">Jabatan</td><td>: {{ $doc->contact_title }}</td></tr>
+                        @endif
+                        @if ($doc->customer?->address)
+                            <tr><td class="rlabel"></td><td class="raddress">{{ $doc->customer->address }}</td></tr>
+                        @endif
+                    </table>
                 </td>
             </tr>
         </table>
@@ -141,19 +141,21 @@
             @else Quote to
             @endif
         </div>
-        <div class="recipient-row"><b class="recipient-label-bold">Account Name</b> : <b>{{ $doc->recipient_name }}</b></div>
-        @if ($doc->contact_name)
-            <div class="recipient-row">Contact Name : {{ $doc->contact_name }}</div>
-        @endif
-        @if ($doc->contact_title)
-            <div class="recipient-row">Jabatan : {{ $doc->contact_title }}</div>
-        @endif
         @php
             $recipientAddress = $doc->type === 'po' ? $doc->vendor?->address : $doc->customer?->address;
         @endphp
-        @if ($recipientAddress)
-            <div class="recipient-address-row">{{ $recipientAddress }}</div>
-        @endif
+        <table class="rtable">
+            <tr><td class="rlabel"><b>Account Name</b></td><td>: <b>{{ $doc->recipient_name }}</b></td></tr>
+            @if ($doc->contact_name)
+                <tr><td class="rlabel">Contact Name</td><td>: {{ $doc->contact_name }}</td></tr>
+            @endif
+            @if ($doc->contact_title)
+                <tr><td class="rlabel">Jabatan</td><td>: {{ $doc->contact_title }}</td></tr>
+            @endif
+            @if ($recipientAddress)
+                <tr><td class="rlabel"></td><td class="raddress">{{ $recipientAddress }}</td></tr>
+            @endif
+        </table>
 
         @if ($doc->type === 'po' && $doc->customer)
             <p style="margin-top: 10px; font-size: 9.5px;">
