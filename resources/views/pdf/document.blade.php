@@ -19,14 +19,11 @@
         .divider { border-top: 2px solid #19A9DB; margin: 10px 0 14px; }
 
         .recipient-box { display: inline-block; background: #4E63BC; padding: 4px 10px; font-weight: bold; font-size: 9.5px; color: #FFFFFF; margin-bottom: 6px; border-radius: 2px; }
-        {{-- 2 kolom (label lebar tetap + ": nilai" nempel jadi satu) — titik
-             dua DIJAMIN sejajar (lebar kolom label sama semua baris), dan
-             SEMUA baris termasuk alamat ditaro dalem SATU tabel yang sama
-             biar alamatnya otomatis sejajar sama baris-baris di atasnya. --}}
         .rtable { width: 100%; margin-bottom: 6px; }
         .rtable td { padding: 0 0 2px 0; font-size: 10px; vertical-align: top; border: none; }
         .rtable .rlabel { width: 92px; }
-        .rtable .raddress { padding-left: 6px; max-width: 280px; }
+        .rtable .raddress { padding-top: 2px; }
+        .rtable .raddress-inner { max-width: 280px; }
 
         .two-col td { width: 50%; vertical-align: top; padding-right: 20px; }
 
@@ -123,7 +120,7 @@
                             <tr><td class="rlabel">Jabatan</td><td>: {{ $doc->contact_title }}</td></tr>
                         @endif
                         @if ($doc->customer?->address)
-                            <tr><td class="rlabel"></td><td class="raddress">{{ $doc->customer->address }}</td></tr>
+                            <tr><td colspan="2" class="raddress"><div class="raddress-inner">{{ $doc->customer->address }}</div></td></tr>
                         @endif
                     </table>
                 </td>
@@ -153,7 +150,7 @@
                 <tr><td class="rlabel">Jabatan</td><td>: {{ $doc->contact_title }}</td></tr>
             @endif
             @if ($recipientAddress)
-                <tr><td class="rlabel"></td><td class="raddress">{{ $recipientAddress }}</td></tr>
+                <tr><td colspan="2" class="raddress"><div class="raddress-inner">{{ $recipientAddress }}</div></td></tr>
             @endif
         </table>
 
