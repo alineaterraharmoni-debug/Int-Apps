@@ -140,6 +140,11 @@
                         <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Vendor ini belum ada data kontak — tambahin di menu Vendor kalau perlu.</p>
                     @endif
                 </div>
+                {{-- TAMBAHAN BARU: --}}
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Jabatan Contact Person <span class="font-normal text-gray-400">(opsional)</span></label>
+                    <input type="text" wire:model="contact_title" placeholder="cth. Purchasing Manager" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
+                </div>
             @else
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -182,6 +187,11 @@
                             @endforeach
                         </select>
                     </div>
+                </div>
+                {{-- TAMBAHAN BARU: --}}
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Jabatan Contact Person <span class="font-normal text-gray-400">(opsional)</span></label>
+                    <input type="text" wire:model="contact_title" placeholder="cth. Purchasing Manager" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-3 py-2 text-sm">
                 </div>
             @endif
 
@@ -230,7 +240,12 @@
                         x-data="{
                             qty: {{ (float) ($item['qty'] ?: 0) }},
                             price: {{ (float) ($item['unit_price'] ?: 0) }},
-                            get amount() { return (parseFloat(this.qty) || 0) * (parseFloat(this.price) || 0); }
+                            discount: {{ (float) ($item['discount'] ?: 0) }},
+                            get amount() {
+                                const base = (parseFloat(this.qty) || 0) * (parseFloat(this.price) || 0);
+                                const disc = parseFloat(this.discount) || 0;
+                                return disc > 0 ? base * (1 - disc / 100) : base;
+                            }
                         }"
                     >
                         <button type="button" wire:click="removeItem({{ $i }})" class="absolute top-2 right-2 text-gray-300 dark:text-gray-600 hover:text-red-500 text-lg leading-none">&times;</button>
@@ -255,10 +270,14 @@
                             <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Kalau dikosongin, baris deskripsi ini gak bakal ditampilin di PDF.</p>
                         </div>
 
-                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        <div class="grid grid-cols-2 sm:grid-cols-6 gap-2">
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Qty</label>
                                 <input type="number" step="0.01" x-model="qty" x-on:input="$wire.set('items.{{ $i }}.qty', qty, false)" x-on:input.debounce.500ms="$wire.set('items.{{ $i }}.qty', qty, true)" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Discount %</label>
+                                <input type="number" step="0.01" x-model="discount" x-on:input="$wire.set('items.{{ $i }}.discount', discount, false)" x-on:input.debounce.500ms="$wire.set('items.{{ $i }}.discount', discount, true)" placeholder="0" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-900 rounded-lg px-2 py-1.5 text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] text-gray-400 dark:text-gray-500 block mb-0.5">Unit</label>

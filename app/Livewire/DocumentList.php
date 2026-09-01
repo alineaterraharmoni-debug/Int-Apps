@@ -66,8 +66,9 @@ class DocumentList extends Component
         // narik terms/notes yang bisa panjang) — biar ringan pas datanya
         // udah banyak. with() dibatesin id+name doang dari relasi.
         $documents = Document::query()
+            $documents = Document::query()
             ->select(['id', 'type', 'status', 'number', 'doc_date', 'customer_id', 'vendor_id', 'total'])
-            ->with(['customer:id,name', 'vendor:id,name'])
+            ->with(['customer:id,name', 'vendor:id,name', 'taxes:id,document_id,amount,direction'])
             ->when($this->typeFilter, fn ($q, $v) => $q->where('type', $v))
             ->when($this->statusFilter, fn ($q, $v) => $q->where('status', $v))
             ->when($this->dateFrom, fn ($q, $v) => $q->whereDate('doc_date', '>=', $v))

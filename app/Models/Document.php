@@ -213,4 +213,10 @@ class Document extends Model
     {
         return $this->items->contains(fn ($i) => $i->credits_required !== null && $i->credits_required !== '');
     }
+
+    // TAMBAHAN BARU:
+    public function getHasDiscountAttribute(): bool
+    {
+        return $this->items->contains(fn ($i) => $i->discount !== null && $i->discount !== '' && (float) $i->discount > 0);
+    }
 }

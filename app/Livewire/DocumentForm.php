@@ -26,6 +26,7 @@ class DocumentForm extends Component
     public ?int $customer_id = null;
     public ?int $vendor_id = null;
     public string $contact_name = '';
+    public string $contact_title = '';   // BARIS BARU
 
     public string $ref_quotation_number = '';
     public string $ref_po_number = '';
@@ -58,6 +59,7 @@ class DocumentForm extends Component
             $this->customer_id = $doc->customer_id;
             $this->vendor_id = $doc->vendor_id;
             $this->contact_name = $doc->contact_name ?? '';
+            $this->contact_title = $doc->contact_title ?? '';   // BARIS BARU
             $this->ref_quotation_number = $doc->ref_quotation_number ?? '';
             $this->ref_po_number = $doc->ref_po_number ?? '';
             $this->ref_invoice_number = $doc->ref_invoice_number ?? '';
@@ -71,6 +73,7 @@ class DocumentForm extends Component
                 'item_name' => $i->item_name,
                 'description' => $i->description,
                 'qty' => (string) $i->qty,
+                'discount' => $i->discount !== null ? (string) $i->discount : '',   // BARIS BARU
                 'unit' => $i->unit,
                 'credits_required' => $i->credits_required,
                 'unit_price' => (string) $i->unit_price,
@@ -199,6 +202,7 @@ class DocumentForm extends Component
             'item_name' => '',
             'description' => '',
             'qty' => '1',
+            'discount' => '',   // BARIS BARU
             'unit' => 'Unit',
             'credits_required' => '',
             'unit_price' => '0',
@@ -291,6 +295,7 @@ class DocumentForm extends Component
                     'item_name' => $i->item_name,
                     'description' => $i->description,
                     'qty' => (string) $i->qty,
+                    'discount' => $i->discount !== null ? (string) $i->discount : '',   // BARIS BARU
                     'unit' => $i->unit,
                     'credits_required' => $i->credits_required,
                     'unit_price' => (string) $i->unit_price,
@@ -301,6 +306,14 @@ class DocumentForm extends Component
                 }
             }
         }
+    }
+
+    private function itemAmount(array $item): float
+    {
+        $base = (float) ($item['qty'] ?? 0) * (float) ($item['unit_price'] ?? 0);
+        $discount = (float) ($item['discount'] ?? 0);
+
+        return $discount > 0 ? $base * (1 - $discount / 100) : $base;
     }
 
     private function calculateTotal(): float
@@ -387,6 +400,7 @@ class DocumentForm extends Component
             'number' => ['nullable', 'string', 'max:100', Rule::unique('documents', 'number')->ignore($this->editingId)],
             'doc_date' => 'required|date',
             'contact_name' => 'nullable|string|max:150',
+            'contact_title' => 'nullable|string|max:100',   // BARIS BARU
             'terms' => 'nullable|string',
             'signatory_name' => 'required|string|max:150',
             'signatory_title' => 'nullable|string|max:100',
@@ -420,6 +434,7 @@ class DocumentForm extends Component
         $data['ref_po_number'] = $this->ref_po_number ?: null;
         $data['ref_invoice_number'] = $this->ref_invoice_number ?: null;
         $data['signatory_title'] = $this->signatory_title ?: null;
+        $data['contact_title'] = $this->contact_title ?: null;   // BARIS BARU
         $data['payment_scheme'] = $this->type === 'invoice' ? $this->payment_scheme : 'full';
 
         unset($data['items']);
@@ -450,10 +465,11 @@ class DocumentForm extends Component
                 'item_name' => $item['item_name'],
                 'description' => $item['description'] ?: null,
                 'qty' => $item['qty'],
+                'discount' => $item['discount'] !== '' ? $item['discount'] : null,
                 'unit' => $item['unit'] ?: null,
                 'credits_required' => $item['credits_required'] !== '' ? $item['credits_required'] : null,
                 'unit_price' => $item['unit_price'],
-                'amount' => (float) $item['qty'] * (float) $item['unit_price'],
+                'amount' => $this->itemAmount($item),
                 'sort_order' => $i,
             ]);
         }

@@ -114,7 +114,7 @@
                         </td>
                         <td class="p-3 text-gray-500 dark:text-gray-400">{{ $doc->doc_date->translatedFormat('d M Y') }}</td>
                         <td class="p-3">{{ $doc->recipient_name ?? '—' }}</td>
-                        <td class="p-3 font-mono">Rp {{ number_format($doc->total, 0, ',', '.') }}</td>
+                        <td class="p-3 font-mono">Rp {{ number_format($doc->type === 'invoice' ? $doc->grand_total : $doc->total, 0, ',', '.') }}</td>
                         <td class="p-3 text-right">
                             <div class="inline-flex items-center gap-1.5">
                                 <a href="{{ route('documents.pdf', $doc->id) }}" target="_blank" onclick="event.stopPropagation()" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">PDF</a>
@@ -148,7 +148,7 @@
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ $doc->doc_date->translatedFormat('d M Y') }}</span>
                 </div>
                 <div class="text-sm mb-1">{{ $doc->recipient_name ?? '—' }}</div>
-                <div class="font-mono font-semibold text-sm mb-3">Rp {{ number_format($doc->total, 0, ',', '.') }}</div>
+                <div class="font-mono font-semibold text-sm mb-3">Rp {{ number_format($doc->type === 'invoice' ? $doc->grand_total : $doc->total, 0, ',', '.') }}</div>
                 <div class="flex items-center gap-1.5">
                     <a href="{{ route('documents.pdf', $doc->id) }}" target="_blank" onclick="event.stopPropagation()" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">PDF</a>
                     @if ($canManage)

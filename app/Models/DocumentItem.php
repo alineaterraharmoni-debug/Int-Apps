@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DocumentItem extends Model
 {
     protected $fillable = [
-        'group_label', 'product_type', 'item_name', 'description', 'qty', 'unit',
+        'group_label', 'product_type', 'item_name', 'description', 'qty', 'discount', 'unit',
         'credits_required', 'unit_price', 'amount', 'sort_order',
     ];
 
