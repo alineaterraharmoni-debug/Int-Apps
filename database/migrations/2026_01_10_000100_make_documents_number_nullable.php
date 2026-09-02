@@ -6,24 +6,28 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * Dokumen berstatus Draft sekarang GAK punya nomor sama sekali (nomor
-     * baru digenerate pas beneran difinalisasi) — jadi kolom ini harus boleh
-     * NULL. Unique constraint yang udah ada tetep aman: MySQL gak nganggep
-     * dua baris NULL sebagai "sama", jadi banyak draft bisa punya number=NULL
-     * bareng tanpa nabrak unique index.
+     * INI ROOT CAUSE error 500 pas Simpan Dokumen kalau ada item yang
+     * Deskripsi-nya dikosongin: kolom `description` dari migration paling
+     * awal itu NOT NULL, tapi form udah lama bikin field ini OPSIONAL
+     * (waktu "Nama Item" dipisah dari "Deskripsi") — nyimpen NULL ke kolom
+     * NOT NULL bikin MySQL nolak (constraint violation) -> Laravel ngelempar
+     * QueryException yang gak ke-catch -> HTTP 500.
      *
-     * Sengaja pake raw SQL (bukan ->change()) — ->change() butuh package
-     * doctrine/dbal yang belum ke-install, dan nambah dependency baru bakal
-     * bikin composer.lock out-of-sync (masalah yang sama kayak kenapa kita
-     * gak pernah nambah package Composer baru tanpa alasan kuat).
+     * Paling gampang kena pas Invoice narik item dari Quotation (fitur
+     * auto-copy pas pilih Opty) — kalau item Quotation-nya ada yang
+     * Deskripsinya kosong (emang udah boleh sekarang), ikut ke-copy kosong,
+     * terus pas Invoice-nya disimpen baru ketauan gagal.
+     *
+     * Raw SQL (bukan ->change()) biar gak butuh doctrine/dbal.
      */
     public function up(): void
     {
-        DB::statement('ALTER TABLE documents MODIFY number VARCHAR(255) NULL');
+        DB::statement('ALTER TABLE document_items MODIFY description TEXT NULL');
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE documents MODIFY number VARCHAR(255) NOT NULL');
+        DB::statement("UPDATE document_items SET description = '' WHERE description IS NULL");
+        DB::statement('ALTER TABLE document_items MODIFY description TEXT NOT NULL');
     }
 };

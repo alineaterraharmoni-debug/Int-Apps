@@ -17,14 +17,6 @@
         </div>
     @endif
 
-    {{-- Pesan error dari try-catch di persist() — muncul kalau ada masalah
-         pas nyimpen ke database (bukan lagi 500 polos yang gak jelas). --}}
-    @error('save_error')
-        <div class="bg-red-50 border border-red-100 text-red-700 text-sm rounded-lg px-3 py-2.5 mb-4">
-            {{ $message }}
-        </div>
-    @enderror
-
     <form wire:submit="saveDraft" class="space-y-5">
         {{-- Info dasar --}}
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 space-y-4">

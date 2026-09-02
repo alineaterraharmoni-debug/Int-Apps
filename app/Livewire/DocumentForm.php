@@ -445,92 +445,75 @@ class DocumentForm extends Component
 
         unset($data['items']);
 
-        // Mulai dari sini semua proses NYIMPEN ke database — dibungkus
-        // try-catch biar kalau ada error (apapun penyebabnya), yang muncul
-        // ke user itu PESAN ERROR YANG JELAS di form (bukan halaman 500
-        // polos yang gak ada info sama sekali). Ini juga otomatis kasih tau
-        // pesan errornya PERSIS apa buat didiagnosis, gak perlu nyalain
-        // APP_DEBUG di production lagi.
-        try {
-            // Kalau lagi edit dan opty/jenis dokumennya DIGANTI, checklist Next
-            // Action di opty yang LAMA perlu di-re-sync juga. Opty yang BARU
-            // otomatis ke-sync sendiri lewat event 'saved' di model.
-            $oldOpportunityId = null;
-            $oldType = null;
-            if ($this->editingId) {
-                $existing = Document::find($this->editingId);
-                $oldOpportunityId = $existing?->opportunity_id;
-                $oldType = $existing?->type;
+        // Kalau lagi edit dan opty/jenis dokumennya DIGANTI, checklist Next
+        // Action di opty yang LAMA perlu di-re-sync juga. Opty yang BARU
+        // otomatis ke-sync sendiri lewat event 'saved' di model.
+        $oldOpportunityId = null;
+        $oldType = null;
+        if ($this->editingId) {
+            $existing = Document::find($this->editingId);
+            $oldOpportunityId = $existing?->opportunity_id;
+            $oldType = $existing?->type;
 
-                $doc = Document::findOrFail($this->editingId);
-                $doc->update($data);
-                $doc->items()->delete();
-                $doc->taxes()->delete();
-                $doc->paymentTerms()->delete();
-            } else {
-                $doc = Document::create($data);
-            }
+            $doc = Document::findOrFail($this->editingId);
+            $doc->update($data);
+            $doc->items()->delete();
+            $doc->taxes()->delete();
+            $doc->paymentTerms()->delete();
+        } else {
+            $doc = Document::create($data);
+        }
 
-            foreach ($this->items as $i => $item) {
-                $doc->items()->create([
-                    'group_label' => $item['group_label'] ?: null,
-                    'product_type' => $item['product_type'] ?: null,
-                    'item_name' => $item['item_name'],
-                    'description' => $item['description'] ?: null,
-                    'qty' => $item['qty'],
-                    'discount' => $item['discount'] !== '' ? $item['discount'] : null,
-                    'unit' => $item['unit'] ?: null,
-                    'credits_required' => $item['credits_required'] !== '' ? $item['credits_required'] : null,
-                    'unit_price' => $item['unit_price'],
-                    'amount' => $this->itemAmount($item),
+        foreach ($this->items as $i => $item) {
+            $doc->items()->create([
+                'group_label' => $item['group_label'] ?: null,
+                'product_type' => $item['product_type'] ?: null,
+                'item_name' => $item['item_name'],
+                'description' => $item['description'] ?: null,
+                'qty' => $item['qty'],
+                'discount' => $item['discount'] !== '' ? $item['discount'] : null,
+                'unit' => $item['unit'] ?: null,
+                'credits_required' => $item['credits_required'] !== '' ? $item['credits_required'] : null,
+                'unit_price' => $item['unit_price'],
+                'amount' => $this->itemAmount($item),
+                'sort_order' => $i,
+            ]);
+        }
+
+        // Pajak & skema pembayaran cuma relevan buat Invoice — dokumen jenis
+        // lain gak nyimpen baris ini sama sekali.
+        if ($this->type === 'invoice') {
+            $subtotal = $this->calculateTotal();
+            foreach ($this->taxes as $i => $tax) {
+                if (! trim($tax['label'] ?? '')) {
+                    continue;
+                }
+                $doc->taxes()->create([
+                    'label' => $tax['label'],
+                    'type' => $tax['type'],
+                    'direction' => $tax['direction'] ?? 'add',
+                    'value' => $tax['value'] ?: 0,
+                    'amount' => $this->taxAmount($tax, $subtotal),
                     'sort_order' => $i,
                 ]);
             }
 
-            // Pajak & skema pembayaran cuma relevan buat Invoice — dokumen jenis
-            // lain gak nyimpen baris ini sama sekali.
-            if ($this->type === 'invoice') {
-                $subtotal = $this->calculateTotal();
-                foreach ($this->taxes as $i => $tax) {
-                    if (! trim($tax['label'] ?? '')) {
-                        continue;
-                    }
-                    $doc->taxes()->create([
-                        'label' => $tax['label'],
-                        'type' => $tax['type'],
-                        'direction' => $tax['direction'] ?? 'add',
-                        'value' => $tax['value'] ?: 0,
-                        'amount' => $this->taxAmount($tax, $subtotal),
-                        'sort_order' => $i,
-                    ]);
+            $grandTotal = $this->calculateGrandTotalFromTaxes($subtotal);
+            foreach ($this->paymentTerms as $i => $term) {
+                if (! trim($term['label'] ?? '')) {
+                    continue;
                 }
-
-                $grandTotal = $this->calculateGrandTotalFromTaxes($subtotal);
-                foreach ($this->paymentTerms as $i => $term) {
-                    if (! trim($term['label'] ?? '')) {
-                        continue;
-                    }
-                    $doc->paymentTerms()->create([
-                        'label' => $term['label'],
-                        'percentage' => $term['percentage'] !== '' ? $term['percentage'] : null,
-                        'amount' => $this->paymentTermAmount($term, $grandTotal),
-                        'sort_order' => $i,
-                    ]);
-                }
+                $doc->paymentTerms()->create([
+                    'label' => $term['label'],
+                    'percentage' => $term['percentage'] !== '' ? $term['percentage'] : null,
+                    'amount' => $this->paymentTermAmount($term, $grandTotal),
+                    'sort_order' => $i,
+                ]);
             }
+        }
 
-            if ($oldOpportunityId && ($oldOpportunityId !== $doc->opportunity_id || $oldType !== $doc->type)) {
-                $doc->syncOpportunityChecklist($oldOpportunityId, $oldType);
-            }
-        } catch (\Throwable $e) {
-            // Log lengkap tetep kesimpen di server (buat didiagnosis lebih
-            // detail kalau perlu), tapi yang ditunjukin ke user pesan ringkas
-            // yang jelas, nempel di bagian atas form (bukan crash ke 500).
-            report($e);
-
-            $this->addError('save_error', 'Gagal nyimpen dokumen: '.$e->getMessage());
-
-            return;
+        if ($oldOpportunityId && ($oldOpportunityId !== $doc->opportunity_id || $oldType !== $doc->type)) {
+            $doc->syncOpportunityChecklist($oldOpportunityId, $oldType);
         }
 
         // Balik ke List, langsung ke-filter ke jenis dokumen yang baru
