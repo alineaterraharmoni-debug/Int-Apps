@@ -30,12 +30,8 @@ class CustomerInsight extends Component
     public string $name = '';
     #[Validate('nullable|string|max:100')]
     public ?string $industry = null;
-    #[Validate('nullable|string|max:100')]
-    public ?string $pic_name = null;
-    #[Validate('nullable|string|max:50')]
-    public ?string $pic_phone = null;
-    #[Validate('nullable|email|max:150')]
-    public ?string $pic_email = null;
+    // Multiple PIC — array of ['name'=>..., 'position'=>..., 'phone'=>..., 'email'=>...]
+    public array $pics = [];
     // Sebelumnya nullable — sekarang wajib, biar data alamat customer selalu
     // ada dari awal (dibutuhin misalnya buat pengiriman dokumen/kunjungan).
     #[Validate('required|string')]
@@ -150,6 +146,17 @@ class CustomerInsight extends Component
         $customer->update(['is_focus' => ! $customer->is_focus]);
     }
 
+    public function addPic(): void
+    {
+        $this->pics[] = ['name' => '', 'position' => '', 'phone' => '', 'email' => ''];
+    }
+
+    public function removePic(int $index): void
+    {
+        unset($this->pics[$index]);
+        $this->pics = array_values($this->pics);
+    }
+
     public function openCreate(): void
     {
         if (! $this->canManage()) {
@@ -170,9 +177,7 @@ class CustomerInsight extends Component
         $this->editingId = $c->id;
         $this->name = $c->name;
         $this->industry = $c->industry;
-        $this->pic_name = $c->pic_name;
-        $this->pic_phone = $c->pic_phone;
-        $this->pic_email = $c->pic_email;
+        $this->pics = $c->pics ?? [];
         $this->address = $c->address;
         $this->notes = $c->notes;
         $this->showModal = true;
@@ -185,6 +190,15 @@ class CustomerInsight extends Component
         }
 
         $data = $this->validate();
+
+        // Buang baris PIC yang kosong semua (nama, jabatan, telepon, email
+        // gak diisi sama sekali) sebelum disimpen.
+        $data['pics'] = array_values(array_filter($this->pics, function ($p) {
+            return trim((string) ($p['name'] ?? '')) !== ''
+                || trim((string) ($p['position'] ?? '')) !== ''
+                || trim((string) ($p['phone'] ?? '')) !== ''
+                || trim((string) ($p['email'] ?? '')) !== '';
+        }));
 
         if ($this->editingId) {
             Customer::findOrFail($this->editingId)->update($data);
@@ -229,15 +243,12 @@ class CustomerInsight extends Component
             'name' => 'Nama Customer',
             'address' => 'Alamat',
             'industry' => 'Industri',
-            'pic_name' => 'Nama PIC',
-            'pic_phone' => 'No. HP PIC',
-            'pic_email' => 'Email PIC',
         ];
     }
 
     private function resetForm(): void
     {
-        $this->reset(['editingId', 'name', 'industry', 'pic_name', 'pic_phone', 'pic_email', 'address', 'notes']);
+        $this->reset(['editingId', 'name', 'industry', 'pics', 'address', 'notes']);
         $this->resetErrorBag();
     }
 }

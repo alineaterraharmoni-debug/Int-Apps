@@ -211,18 +211,20 @@
                         <div><span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600">★ Fokus</span></div>
                     @endif
                     <div>
-                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Nama PIC</div>
-                        <div>{{ $detailCustomer->pic_name ?: '—' }}</div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">No. HP PIC</div>
-                            <div>{{ $detailCustomer->pic_phone ?: '—' }}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Email PIC</div>
-                            <div class="truncate">{{ $detailCustomer->pic_email ?: '—' }}</div>
-                        </div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mb-1.5">Kontak PIC</div>
+                        @forelse ($detailCustomer->pics ?? [] as $p)
+                            <div class="border border-gray-100 dark:border-gray-700 rounded-lg p-2.5 mb-2">
+                                <div class="font-semibold">{{ $p['name'] ?? '—' }}</div>
+                                @if (! empty($p['position']))
+                                    <div class="text-xs text-sky mb-1">{{ $p['position'] }}</div>
+                                @endif
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $p['phone'] ?? '' }}{{ ! empty($p['phone']) && ! empty($p['email']) ? ' · ' : '' }}{{ $p['email'] ?? '' }}
+                                </div>
+                            </div>
+                        @empty
+                            <span class="text-xs text-gray-400 dark:text-gray-500">Belum ada PIC ditambahin.</span>
+                        @endforelse
                     </div>
                     <div>
                         <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Alamat</div>
@@ -265,22 +267,50 @@
                             <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Industri</label>
                             <input type="text" wire:model="industry" placeholder="cth. Perbankan" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
                         </div>
-                        <div>
-                            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Nama PIC</label>
-                            <input type="text" wire:model="pic_name" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
+                    </div>
+
+                    {{-- Kontak PIC terstruktur — satu customer bisa punya beberapa
+                         PIC (misal PIC procurement beda sama PIC teknis). --}}
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Kontak PIC</label>
+                            <button type="button" wire:click="addPic" class="text-[11px] font-semibold text-sky">+ Tambah PIC</button>
+                        </div>
+
+                        @if (empty($pics))
+                            <p class="text-xs text-gray-400 dark:text-gray-500">Belum ada PIC ditambahin.</p>
+                        @endif
+
+                        <div class="space-y-3">
+                            @foreach ($pics as $i => $pic)
+                                <div class="relative border border-gray-200 dark:border-gray-700 rounded-xl p-3">
+                                    <button type="button" wire:click="removePic({{ $i }})" class="absolute top-2 right-2 text-gray-400 dark:text-gray-500 hover:text-rose-500">
+                                        <x-icon name="x" class="w-4 h-4" />
+                                    </button>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pr-7">
+                                        <div>
+                                            <label class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mb-0.5">Nama</label>
+                                            <input type="text" wire:model="pics.{{ $i }}.name" placeholder="cth. Bpk. Wahyu Bimo" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mb-0.5">Jabatan</label>
+                                            <input type="text" wire:model="pics.{{ $i }}.position" placeholder="cth. Purchasing Manager" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mb-0.5">No. Telepon</label>
+                                            <input type="text" wire:model="pics.{{ $i }}.phone" placeholder="08xx" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mb-0.5">Email</label>
+                                            <input type="email" wire:model="pics.{{ $i }}.email" placeholder="nama@customer.com" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm">
+                                        </div>
+                                    </div>
+                                    @error('pics.'.$i.'.email') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
+                                </div>
+                            @endforeach
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">No. HP PIC</label>
-                            <input type="text" wire:model="pic_phone" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Email PIC</label>
-                            <input type="email" wire:model="pic_email" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm">
-                            @error('pic_email') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
+
                     <div>
                         <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Alamat <span class="text-rose-500">*</span></label>
                         <textarea wire:model="address" rows="3" placeholder="Alamat lengkap customer" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"></textarea>

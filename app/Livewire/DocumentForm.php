@@ -167,10 +167,12 @@ class DocumentForm extends Component
             ->get(['id', 'title', 'customer_id']);
     }
 
+   // SESUDAH
     /**
      * Kontak yang bisa dipilih buat "Contact Name" — narik dari data
-     * Customer (pic_name, satu doang) atau Vendor (contacts[], bisa banyak).
-     * Selalu ada opsi kosong di awal buat "gak ada PIC".
+     * Customer atau Vendor, dua-duanya sekarang sama-sama bisa punya lebih
+     * dari 1 PIC (Customer.pics[] / Vendor.contacts[]). Selalu ada opsi
+     * kosong di awal buat "gak ada PIC".
      */
     private function contactOptions(): array
     {
@@ -188,7 +190,12 @@ class DocumentForm extends Component
         if ($this->type !== 'po' && $this->customer_id) {
             $customer = Customer::find($this->customer_id);
 
-            return $customer?->pic_name ? [$customer->pic_name] : [];
+            return collect($customer?->pics ?? [])
+                ->pluck('name')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
         }
 
         return [];

@@ -16,6 +16,7 @@ class Customer extends Model
         'pic_name',
         'pic_phone',
         'pic_email',
+        'pics',
         'address',
         'is_focus',
         'notes',
@@ -23,6 +24,7 @@ class Customer extends Model
 
     protected $casts = [
         'is_focus' => 'boolean',
+        'pics' => 'array',
     ];
 
     public function opportunities(): HasMany
